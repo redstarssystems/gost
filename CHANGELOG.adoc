@@ -1,0 +1,7 @@
+== Changelog
+
+=== [0.1.0-SNAPSHOT] - 2022-02-06
+
+Initial release.
+
+==== Added

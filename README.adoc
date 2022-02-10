@@ -1,0 +1,109 @@
+== GOST library
+:git:               https://git-scm.com[git]
+:clojure-deps-cli:  https://clojure.org/guides/getting_started[clojure deps cli]
+:tools-build:       https://clojure.org/guides/tools_build[tools-build]
+:deps-new:          https://github.com/seancorfield/deps-new[deps-new]
+:build-clj:         https://github.com/seancorfield/build-clj[build-clj]
+:babashka:          https://github.com/babashka/babashka[babashka]
+:toc:
+
+This is a thin wrapper for https://bouncycastle.org[Bouncycastle library] to work with GOST algorithms - Russian cryptographic standards.
+
+The library provides:
+
+- encryption, mac using _GOST 28147-89_, _GOST 3412-2015_;
+- digest, hmac using _GOST3411-94/2012_ 256 and 512 bits;
+- signature with _GOST3410-2001_, _GOST3410-2012_;
+- key generation: secret keys, public/private keys, password based keys;
+- high level functions:
+** compression + encryption + mac / decryption + check mac + decompression
+** encrypting with EC public keys / decrypting with EC private keys
+** save / load keys (secret, private, public) to file.
+
+
+This library is successor of https://github.com/middlesphere/crypto-gost[crypto-gost].
+
+=== Build this project
+
+Project org.rssys/gost generated from https://github.com/redstarssystems/libtemplate[Library template].
+
+[#install-prerequisites]
+==== Install prerequisites
+
+All these tools you need to install only once.
+
+. Install {clojure-deps-cli} tools version 1.10.3.1069+
+.. MacOS
++
+[source,bash]
+----
+brew install clojure/tools/clojure
+----
+.. Linux
++
+Ensure that the following dependencies are installed in OS: `bash`, `curl`, `rlwrap`, and `Java`.
++
+[source, bash]
+----
+curl -O https://download.clojure.org/install/linux-install-1.10.3.1069.sh
+chmod +x linux-install-1.10.3.1069.sh
+sudo ./linux-install-1.10.3.1069.sh
+----
+
+. Install latest {deps-new}
++
+[source,bash]
+----
+clojure -Ttools install io.github.seancorfield/deps-new '{:git/tag "v0.4.9"}' :as new
+----
++
+Tool will be installed in `~/.gitlibs/libs/`
+
+. Install {babashka} v0.4.0+
+.. MacOS
++
+[source, bash]
+----
+brew install borkdude/brew/babashka
+----
++
+.. Linux
++
+[source, bash]
+----
+sudo bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
+----
+
+. Run once:
++
+[source,bash]
+----
+bb requirements
+----
+to install other necessary tools (MacOS only, for Linux manual instruction).
+
+=== Project workflow
+
+To configure project workflow scripts use `bb.edn` and `build.clj` files.
+
+Run `bb tasks` to show help for project workflow. The following tasks are available:
+
+[source, bash]
+----
+clean        Clean target folder
+build        Build deployable jar file for this project
+install      Install deployable jar locally (requires the pom.xml file)
+deploy       Deploy this library to Clojars
+test         Run tests
+repl         Run Clojure repl
+outdated     Check for outdated dependencies
+outdated:fix Check for outdated dependencies and fix
+format       Format source code
+lint         Lint source code
+requirements Install project requirements
+----
+
+=== License
+
+Copyright © 2021 Mike Ananev +
+Distributed under the Eclipse Public License 1.0 or (at your option) any later version.

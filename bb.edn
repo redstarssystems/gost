@@ -1,0 +1,111 @@
+{:min-bb-version "0.4.0"
+
+ :tasks
+ {:requires    ([babashka.fs :as fs]
+                [babashka.process :refer [process check]]
+                [clojure.string :as str])
+
+  ;; helpers and constants
+  :init
+  (do
+    (def ansi-green "\u001B[32m")
+    (def ansi-reset "\u001B[0m")
+    (def ansi-yellow "\u001B[33m")
+    (def date-formatter (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+    (def current-timestamp (System/currentTimeMillis))
+    (defn current-date [] (.format
+                            (java.time.LocalDateTime/ofInstant
+                              (java.time.Instant/ofEpochMilli current-timestamp)
+                              (java.time.ZoneId/systemDefault))
+                            date-formatter))
+
+    (defn prf [& args] (println (apply format args)))
+
+    (def debug-exec? false)
+
+    (defn exec
+      "Execute command and put its output to a string"
+      [cmd]
+      (when debug-exec?
+        (prf "Execute command: '%s'" cmd))
+      (-> (process cmd {:out :string}) check :out str/trim-newline))
+
+    (defn safe-exec
+      "Execute command ignoring bad exit codes and put its output to a string if success. Returns nil if error."
+      ([cmd] (safe-exec cmd true))
+      ([cmd print-errors?]
+       (try (exec cmd)
+            (catch Exception e
+              (when print-errors?
+                (prf "command failed: '%s', error message: '%s'" cmd (.getMessage e)))))))
+
+    (def target-folder "target")
+    (def release-branches #{"master"})
+    (def deployable-branches #{"master" "develop"})
+
+    (defn get-project-env []
+      (let [git-branch (safe-exec "git rev-parse --abbrev-ref HEAD" false)
+            release? (contains? release-branches git-branch)
+            snapshot? (not release?)]
+        {:target-folder target-folder
+         :release-branches release-branches
+         :deployable-branches deployable-branches
+         :build-time  (current-date)
+         :build-timestamp current-timestamp
+         :git-url     (safe-exec "git config --get remote.origin.url" false)
+         :git-branch  git-branch
+         :git-sha     (safe-exec "git rev-parse --short HEAD" false)
+         :git-rev-count (safe-exec "git rev-list HEAD --count" false)
+         :release?    release?
+         :snapshot?   (not release?)
+         :deployable? (contains? deployable-branches git-branch)})))
+
+  :enter       (let [{:keys [name]} (current-task)] (prf "%s[ ] %s %s%s" ansi-yellow name (current-date) ansi-reset))
+  :leave       (let [{:keys [name]} (current-task)] (prf "%s[✔]︎ %s %s%s" ansi-green name (current-date) ansi-reset))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; commands
+  clean        {:doc  "Clean target folder"
+                :task (do (fs/delete-tree target-folder)
+                          (fs/create-dir target-folder))}
+
+  build        {:doc  "Build deployable jar file for this project"
+                :task (do
+                        (fs/create-dirs target-folder)
+                        (shell {:extra-env (get-project-env)} (str "clojure -T:build jar")))}
+
+  install      {:doc  "Install deployable jar locally (requires the pom.xml file)"
+                :task (shell (str "clojure -T:build install"))}
+
+  deploy       {:doc  "Deploy this library to Clojars"
+                :task (shell {:extra-env (get-project-env)} (str "clojure -T:build deploy"))}
+
+  test         {:doc  "Run tests"
+                :task (shell (str "clojure -M:test " (apply str (interpose " " *command-line-args*))))}
+
+  repl         {:doc  "Run Clojure repl"
+                :task (clojure "-M:repl")}
+
+  outdated     {:doc  "Check for outdated dependencies"
+                :task (clojure (str "-M:outdated " (apply str (interpose " " *command-line-args*))))}
+
+  outdated:fix  {:doc  "Check for outdated dependencies and fix"
+                 :task (clojure (str "-M:outdated --upgrade --force" (apply str (interpose " " *command-line-args*))))}
+
+  format       {:doc  "Format source code"
+                :task (shell "cljstyle fix")}
+
+  lint         {:doc  "Lint source code"
+                :task (do
+                        (shell "clj-kondo --parallel --lint src:test:dev/src")
+                        (shell "cljstyle check"))}
+
+  requirements {:doc  "Install project requirements"
+                :task (let [os-name (clojure.string/lower-case (System/getProperty "os.name"))]
+                        (case os-name
+                          "mac os x" (do
+                                       (shell "brew install --cask cljstyle")
+                                       (shell "brew install borkdude/brew/clj-kondo")
+                                       (shell (str "xattr -r -d com.apple.quarantine " (exec "which cljstyle"))))
+                          (println "Please, install manually the following tools: cljstyle, clj-kondo")))}
+
+  }}
