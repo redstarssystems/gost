@@ -545,7 +545,7 @@
 
 (defn protect-bytes
   "Encrypt, compress, calculate MAC for plain data.
-  IV is always random.
+  IV is always random. Encryption mode is CFB.
   Returns bytes array with structure: [IV, encrypted(Mac), encrypted(compressed-data)]"
   [^SecretKeySpec secret-key ^bytes data]
   (if (or (nil? data) (= 0 (alength data)))
@@ -587,7 +587,7 @@
 
 (defn protect-file
   "Encrypt, compress, calculate MAC for plain data from `input-filename`.
-  IV is always random.
+  IV is always random. Encryption mode is CFB.
   Save encrypted data to `output-filename` (create or overwrite it) with structure: [IV, encrypted(Mac), encrypted(compressed-data)].
   Returns ^String value of `output-filename` if success or throw Exception if error."
   [^SecretKeySpec secret-key ^String input-filename ^String output-filename]
