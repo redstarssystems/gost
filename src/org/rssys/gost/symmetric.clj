@@ -201,12 +201,14 @@
                                          :cfb-mode "GOST3412-2015/CFB/NoPadding"
                                          :ctr-mode "GOST3412-2015/CTR/NoPadding"
                                          :cbc-mode "GOST3412-2015/CBC/PKCS7Padding"
-                                         (throw (ex-info (str "Unknown cipher mode. Allowed values: " (apply str (interpose ", " allowed-cipher-modes-set))) {:cipher-mode cipher-mode})))
+                                         (throw (ex-info (str "Unknown cipher mode. Allowed values: "
+                                                           (apply str (interpose ", " allowed-cipher-modes-set))) {:cipher-mode cipher-mode})))
                          gost28147 (condp = cipher-mode
                                      :cfb-mode "GOST28147/CFB/NoPadding"
                                      :ctr-mode "GOST28147/CTR/NoPadding"
                                      :cbc-mode "GOST28147/CBC/PKCS7Padding"
-                                     (throw (ex-info (str "Unknown cipher mode. Allowed values: " (apply str (interpose ", " allowed-cipher-modes-set))) {:cipher-mode cipher-mode}))))
+                                     (throw (ex-info (str "Unknown cipher mode. Allowed values: "
+                                                       (apply str (interpose ", " allowed-cipher-modes-set))) {:cipher-mode cipher-mode}))))
         cipher (Cipher/getInstance mode "BC")]
     cipher))
 
@@ -543,6 +545,7 @@
 
 (defn protect-bytes
   "Encrypt, compress, calculate MAC for plain data.
+  IV is always random.
   Returns bytes array with structure: [IV, encrypted(Mac), encrypted(compressed-data)]"
   [^SecretKeySpec secret-key ^bytes data]
   (if (or (nil? data) (= 0 (alength data)))
@@ -584,6 +587,7 @@
 
 (defn protect-file
   "Encrypt, compress, calculate MAC for plain data from `input-filename`.
+  IV is always random.
   Save encrypted data to `output-filename` (create or overwrite it) with structure: [IV, encrypted(Mac), encrypted(compressed-data)].
   Returns ^String value of `output-filename` if success or throw Exception if error."
   [^SecretKeySpec secret-key ^String input-filename ^String output-filename]
