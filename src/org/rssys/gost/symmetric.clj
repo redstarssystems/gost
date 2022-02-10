@@ -582,3 +582,51 @@
     decrypted-data))
 
 
+(defn protect-file
+  "Encrypt, compress, calculate MAC for plain data from `input-filename`.
+  Save encrypted data to `output-filename` (create or overwrite it) with structure: [IV, encrypted(Mac), encrypted(compressed-data)].
+  Returns ^String value of `output-filename` if success or throw Exception if error."
+  [^SecretKeySpec secret-key ^String input-filename ^String output-filename]
+  (when (or (not (.exists (io/file input-filename))) (zero? (.length (io/file input-filename))))
+    (throw (ex-info "File not exist or empty" {:input-file input-filename})))
+  (let [cipher        (new-encryption-cipher secret-key :cfb-mode)
+        in-mac        (io/input-stream input-filename)
+        mac           (mac-stream secret-key in-mac)
+        _             (.close in-mac)
+        encrypted-mac (encrypt-bytes cipher mac)
+        in            (io/input-stream input-filename)
+        out           (io/output-stream output-filename)]
+    (.write out ^bytes (.getIV cipher))
+    (.write out ^bytes encrypted-mac)
+    (compress-and-encrypt-stream cipher in out :close-streams false)
+    (.close in)
+    (.close out)
+    output-filename))
+
+
+(defn unprotect-file
+  "Decrypt, decompress content of `input-filename`, verify MAC for plain data.
+  Save plain data to `output-filename` (create or overwrite it).
+  Returns ^String value of `output-filename` if success or throw Exception if error."
+  [^SecretKeySpec secret-key ^String input-filename ^String output-filename]
+  (when (or (not (.exists (io/file input-filename))) (zero? (.length (io/file input-filename))))
+    (throw (ex-info "File not exist or empty" {:input-file input-filename})))
+  (let [in         (io/input-stream input-filename)
+        iv         (byte-array (iv-length-by-algo-mode (algo-name secret-key) :cfb-mode))
+        _          (.read in iv)
+        mac-buffer (byte-array (mac-length-by-algo (algo-name secret-key)))
+        _          (.read in mac-buffer)
+        cipher     (new-decryption-cipher secret-key :cfb-mode (init-gost-named-params (algo-name secret-key) iv "E-A"))
+        mac        (decrypt-bytes cipher mac-buffer)
+        out        (io/output-stream output-filename)
+        _          (decrypt-and-decompress-stream cipher in out :close-streams false)
+        _          (.close out)
+        new-mac    (mac-stream secret-key (io/input-stream output-filename))]
+    (when (not= (into [] new-mac) (into [] mac))
+      (throw (ex-info "Decrypted data is corrupted: Mac codes are different"
+               {:mac     (common/bytes-to-hex mac)
+                :new-mac (common/bytes-to-hex new-mac)})))
+    (.close in)
+    output-filename))
+
+

@@ -785,6 +785,92 @@
             (sut/unprotect-bytes secret-key-89 corrupted-data-89))))))
 
 
+(deftest ^:unit protect-file-test
+
+  (testing "Protect/unprotect-file success for a big file"
+    (let [input-filename           "test/data/big.txt"
+          secret-key-2015          (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
+          secret-key-89            (sut/byte-array->secret-key test-secret-key sut/gost28147)
+
+          output-file-enc-2015     (File/createTempFile "filename" ".enc")
+          output-file-enc-89       (File/createTempFile "filename" ".enc")
+          _                        (.deleteOnExit output-file-enc-2015)
+          _                        (.deleteOnExit output-file-enc-89)
+
+          output-filename-enc-2015 (.getAbsolutePath output-file-enc-2015)
+          output-filename-enc-89   (.getAbsolutePath output-file-enc-89)
+
+          _                        (sut/protect-file secret-key-2015 input-filename output-filename-enc-2015)
+          _                        (sut/protect-file secret-key-89 input-filename output-filename-enc-89)
+
+          output-file-txt-2015     (File/createTempFile "filename" ".txt")
+          output-file-txt-89       (File/createTempFile "filename" ".txt")
+          _                        (.deleteOnExit output-file-txt-2015)
+          _                        (.deleteOnExit output-file-txt-89)
+
+          _                        (sut/unprotect-file secret-key-2015 output-file-enc-2015 output-file-txt-2015)
+          _                        (sut/unprotect-file secret-key-89 output-file-enc-89 output-file-txt-89)
+          input-content            (slurp input-filename)]
+
+      (match input-content (slurp output-file-txt-2015))
+      (match input-content (slurp output-file-txt-89))
+
+      (.delete (io/file output-filename-enc-2015))
+      (.delete (io/file output-filename-enc-89))
+      (.delete (io/file output-file-txt-2015))
+      (.delete (io/file output-file-txt-89)))))
+
+
+
+(deftest ^:unit unprotect-file-test
+
+  (testing "Protect/unprotect-file unsuccessful for corrupted data"
+    (let [input-filename           "test/data/big.txt"
+          secret-key-2015          (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
+          secret-key-89            (sut/byte-array->secret-key test-secret-key sut/gost28147)
+
+          output-file-enc-2015     (File/createTempFile "filename" ".enc")
+          output-file-enc-89       (File/createTempFile "filename" ".enc")
+          _                        (.deleteOnExit output-file-enc-2015)
+          _                        (.deleteOnExit output-file-enc-89)
+
+          output-filename-enc-2015 (.getAbsolutePath output-file-enc-2015)
+          output-filename-enc-89   (.getAbsolutePath output-file-enc-89)
+
+          _                        (sut/protect-file secret-key-2015 input-filename output-filename-enc-2015)
+          _                        (sut/protect-file secret-key-89 input-filename output-filename-enc-89)
+
+          output-file-txt-2015     (File/createTempFile "filename" ".txt")
+          output-file-txt-89       (File/createTempFile "filename" ".txt")
+          _                        (.deleteOnExit output-file-txt-2015)
+          _                        (.deleteOnExit output-file-txt-89)
+
+          protected-data-2015      (byte-array (.length output-file-enc-2015))
+          protected-data-89        (byte-array (.length output-file-enc-89))
+          in-2015                  (io/input-stream output-file-enc-2015)
+          in-89                    (io/input-stream output-file-enc-89)
+          _                        (.read in-2015 protected-data-2015)
+          _                        (.read in-89 protected-data-89)
+
+          corrupted-data-2015      (byte-array (update (into [] protected-data-2015) sut/iv-length-16 inc))
+          corrupted-data-89        (byte-array (update (into [] protected-data-89) sut/iv-length-8 inc))
+
+          out-2015                 (io/output-stream output-filename-enc-2015)
+          out-89                   (io/output-stream output-filename-enc-89)
+
+          _                        (.write out-2015 corrupted-data-2015)
+          _                        (.write out-89 corrupted-data-89)]
+
+      (is (thrown-with-msg? ExceptionInfo #"Decrypted data is corrupted: Mac codes are different"
+            (sut/unprotect-file secret-key-2015 output-file-enc-2015 output-file-txt-2015)))
+
+      (is (thrown-with-msg? ExceptionInfo #"Decrypted data is corrupted: Mac codes are different"
+            (sut/unprotect-file secret-key-89 output-file-enc-89 output-file-txt-89)))
+
+      (.delete (io/file output-filename-enc-2015))
+      (.delete (io/file output-filename-enc-89))
+      (.delete (io/file output-file-txt-2015))
+      (.delete (io/file output-file-txt-89)))))
 
 
 (comment
@@ -893,5 +979,8 @@
   (.close decrypt-server)
 
   )
+
+
+
 
 
