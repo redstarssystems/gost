@@ -1,6 +1,6 @@
 (ns examples.encryption
   (:require
-    [org.rssys.gost.symmetric :as e]))
+    [org.rssys.gost.encrypt :as e]))
 
 
 ;; Generate secret key for GOST3412-2015.

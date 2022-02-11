@@ -1,11 +1,11 @@
-(ns org.rssys.gost.symmetric-test
+(ns org.rssys.gost.encrypt-test
   (:require
     [clojure.java.io :as io]
     [clojure.string :as string]
     [clojure.test :as test :refer [deftest is testing]]
     [matcho.core :refer [match]]
     [org.rssys.gost.common :as common]
-    [org.rssys.gost.symmetric :as sut])
+    [org.rssys.gost.encrypt :as sut])
   (:import
     (clojure.lang
       ExceptionInfo)

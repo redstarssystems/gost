@@ -1,4 +1,4 @@
-(ns org.rssys.gost.symmetric
+(ns org.rssys.gost.encrypt
   "Encryption / decryption functions using GOST"
   (:require
     [clojure.java.io :as io]
