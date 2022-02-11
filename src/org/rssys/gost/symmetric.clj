@@ -266,8 +266,6 @@
   \"E-C\"     - Gost28147_89_CryptoPro_C_ParamSet
   \"E-D\"     - Gost28147_89_CryptoPro_D_ParamSet
   \"Param-Z\" - tc26_gost_28147_param_Z
-  \"Default\" - S-Boxes from 'Applied cryptography' book
-  \"E-Test\"  - test S-Box, for tests ONLY
 
   For GOST3412-2015 - param names are ignored."
   ^AlgorithmParameterSpec
@@ -379,6 +377,7 @@
   ([^SecretKeySpec secret-key input]
     (mac-28147-stream secret-key input (byte-array s-box-crypto-pro-a)))
   ;; by default we use CryptoPro_A_ParamSet
+
   ([^SecretKeySpec secret-key input ^bytes s-box & {:keys [close-streams?] :or {close-streams? true}}]
     (Security/addProvider (BouncyCastleProvider.))
     (let [in         (io/input-stream input)
@@ -551,6 +550,7 @@
   IV is always random. Encryption mode is CFB.
   For 28147-89 default s-box is id-Gost28147-89-CryptoPro-A-ParamSet. For GOST3412-2015 s-box is ignored.
   Returns bytes array with structure: [IV, encrypted(Mac), encrypted(compressed-data)]"
+  ^bytes
   ([^SecretKeySpec secret-key ^bytes data]
     (let [iv (new-iv (algo-name secret-key) :cfb-mode)]
       (protect-bytes secret-key data (init-gost-sbox-binary-params (algo-name secret-key) iv (byte-array s-box-crypto-pro-a)))))
@@ -576,6 +576,7 @@
   "Decrypt, decompress input data bytes, verify MAC for decrypted plain data.
   For 28147-89 default s-box is id-Gost28147-89-CryptoPro-A-ParamSet. For GOST3412-2015 s-box is ignored.
   Returns plain data as bytes array if success or throws Exception if failure."
+  ^bytes
   [^SecretKeySpec secret-key ^bytes input & {:keys [s-box] :or {s-box (byte-array s-box-crypto-pro-a)}}]
   (let [in               (io/input-stream input)
         algo-name-string (algo-name secret-key)

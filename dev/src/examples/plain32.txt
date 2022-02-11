@@ -1,0 +1,1 @@
+This text has length = 32 bytes.
