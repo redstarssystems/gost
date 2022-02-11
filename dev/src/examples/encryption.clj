@@ -51,10 +51,8 @@
 ;; compress plain data to hide information structure, then
 ;; encrypts data and Mac in CFB mode with always random IV.
 ;; Encrypted bytes from the same message and same key are always different!
-(def encrypted-message (e/protect-bytes secret-key-2015 (.getBytes message)))
-
-
-;; Returns bytes array with structure: [random(IV), encrypted(Mac), encrypted(compressed-data)]
+(def encrypted-message (e/protect-bytes secret-key-2015 (.getBytes message))) ;; Returns bytes array with structure:
+;; [random(IV), encrypted(Mac), encrypted(compressed-data)]
 
 ;; To decrypt and restore plain text just use `unprotect-bytes` function.
 ;; Decryption algorithm GOST3412-2015 or GOST28147-89 is already set in SecretKeySpec.
