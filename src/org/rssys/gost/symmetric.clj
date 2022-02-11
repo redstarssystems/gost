@@ -344,10 +344,12 @@
 (defn mac-bytes
   "Calculate MAC for plain data bytes array using secret-key. Algorithm is set inside ^SecretKeySpec.
   Returns byte array with calculated MAC."
-  [^SecretKeySpec secret-key ^bytes plain-data]
-  (condp = (algo-name secret-key)
-    gost3412-2015 (mac-3412 secret-key plain-data)
-    gost28147 (mac-28147 secret-key plain-data)))
+  ([^SecretKeySpec secret-key ^bytes plain-data]
+    (mac-bytes secret-key plain-data (byte-array s-box-crypto-pro-a)))
+  ([^SecretKeySpec secret-key ^bytes plain-data ^bytes s-box]
+    (condp = (algo-name secret-key)
+      gost3412-2015 (mac-3412 secret-key plain-data)
+      gost28147 (mac-28147 secret-key plain-data s-box))))
 
 
 (defn mac-3412-stream
@@ -497,7 +499,8 @@
   ([^SecretKeySpec secret-key ^Keyword cipher-mode]
     (let [iv (new-iv (algo-name secret-key) cipher-mode)]    ;; for every message we should have unique IV
       ;; By default, we use CryptoPro_A_ParamSet for GOST28147-89, but for GOST 3412-2015 this param set is ignored.
-      (new-encryption-cipher secret-key cipher-mode (init-gost-sbox-binary-params (algo-name secret-key) iv (byte-array s-box-crypto-pro-a)))))
+      (new-encryption-cipher secret-key cipher-mode
+        (init-gost-sbox-binary-params (algo-name secret-key) iv (byte-array s-box-crypto-pro-a)))))
   ([^SecretKeySpec secret-key ^Keyword cipher-mode ^AlgorithmParameterSpec algo-params]
     (let [cipher (init-cipher-mode (algo-name secret-key) cipher-mode)]
       (.init cipher Cipher/ENCRYPT_MODE secret-key algo-params)
@@ -555,10 +558,11 @@
     (if (or (nil? data) (= 0 (alength data)))
       (throw (ex-info "Empty byte array or nil is not allowed" {}))
       (let [cipher        (new-encryption-cipher secret-key :cfb-mode algo-spec)
+            algo-name-string (algo-name secret-key)
             baos-data     (ByteArrayOutputStream.)
             mac           (cond
-                            (= (algo-name secret-key) gost28147) (mac-stream secret-key data (.getSBox algo-spec))
-                            (= (algo-name secret-key) gost3412-2015) (mac-stream secret-key data))
+                            (= algo-name-string gost28147) (mac-stream secret-key data (.getSBox algo-spec))
+                            (= algo-name-string gost3412-2015) (mac-stream secret-key data))
             encrypted-mac (encrypt-bytes cipher mac)
             result-baos   (ByteArrayOutputStream.)]
         (compress-and-encrypt-stream cipher data baos-data)
@@ -573,17 +577,19 @@
   For 28147-89 default s-box is id-Gost28147-89-CryptoPro-A-ParamSet. For GOST3412-2015 s-box is ignored.
   Returns plain data as bytes array if success or throws Exception if failure."
   [^SecretKeySpec secret-key ^bytes input & {:keys [s-box] :or {s-box (byte-array s-box-crypto-pro-a)}}]
-  (let [in             (io/input-stream input)
-        iv             (byte-array (iv-length-by-algo-mode (algo-name secret-key) :cfb-mode))
-        _              (.read in iv)
-        mac-buffer     (byte-array (mac-length-by-algo (algo-name secret-key)))
-        _              (.read in mac-buffer)
-        cipher         (new-decryption-cipher secret-key :cfb-mode (init-gost-sbox-binary-params (algo-name secret-key) iv s-box))
-        mac            (decrypt-bytes cipher mac-buffer)
-        baos-data      (ByteArrayOutputStream.)
-        _              (decrypt-and-decompress-stream cipher in baos-data)
-        decrypted-data (.toByteArray baos-data)
-        new-mac        (mac-stream secret-key decrypted-data s-box)]
+  (let [in               (io/input-stream input)
+        algo-name-string (algo-name secret-key)
+        cipher-mode      :cfb-mode
+        iv               (byte-array (iv-length-by-algo-mode algo-name-string cipher-mode))
+        _                (.read in iv)
+        mac-buffer       (byte-array (mac-length-by-algo algo-name-string))
+        _                (.read in mac-buffer)
+        cipher           (new-decryption-cipher secret-key cipher-mode (init-gost-sbox-binary-params algo-name-string iv s-box))
+        mac              (decrypt-bytes cipher mac-buffer)
+        baos-data        (ByteArrayOutputStream.)
+        _                (decrypt-and-decompress-stream cipher in baos-data)
+        decrypted-data   (.toByteArray baos-data)
+        new-mac          (mac-stream secret-key decrypted-data s-box)]
     (when (not= (into [] new-mac) (into [] mac))
       (throw (ex-info "Decrypted data is corrupted: Mac codes are different"
                {:mac     (common/bytes-to-hex mac)
@@ -600,19 +606,21 @@
   Returns ^String value of `output-filename` if success or throw Exception if error."
   ([^SecretKeySpec secret-key ^String input-filename ^String output-filename]
     (let [iv (new-iv (algo-name secret-key) :cfb-mode)]
-      (protect-file secret-key input-filename output-filename (init-gost-sbox-binary-params (algo-name secret-key) iv (byte-array s-box-crypto-pro-a)))))
+      (protect-file secret-key input-filename output-filename
+        (init-gost-sbox-binary-params (algo-name secret-key) iv (byte-array s-box-crypto-pro-a)))))
   ([^SecretKeySpec secret-key ^String input-filename ^String output-filename ^AlgorithmParameterSpec algo-spec]
     (when (or (not (.exists (io/file input-filename))) (zero? (.length (io/file input-filename))))
       (throw (ex-info "File not exist or empty" {:input-file input-filename})))
-    (let [cipher        (new-encryption-cipher secret-key :cfb-mode algo-spec)
-          in-mac        (io/input-stream input-filename)
-          mac           (cond
-                          (= (algo-name secret-key) gost28147) (mac-stream secret-key in-mac (.getSBox algo-spec))
-                          (= (algo-name secret-key) gost3412-2015) (mac-stream secret-key in-mac))
-          _             (.close in-mac)
-          encrypted-mac (encrypt-bytes cipher mac)
-          in            (io/input-stream input-filename)
-          out           (io/output-stream output-filename)]
+    (let [cipher           (new-encryption-cipher secret-key :cfb-mode algo-spec)
+          algo-name-string (algo-name secret-key)
+          in-mac           (io/input-stream input-filename)
+          mac              (cond
+                             (= algo-name-string gost28147) (mac-stream secret-key in-mac (.getSBox algo-spec))
+                             (= algo-name-string gost3412-2015) (mac-stream secret-key in-mac))
+          _                (.close in-mac)
+          encrypted-mac    (encrypt-bytes cipher mac)
+          in               (io/input-stream input-filename)
+          out              (io/output-stream output-filename)]
       (.write out ^bytes (.getIV cipher))
       (.write out ^bytes encrypted-mac)
       (compress-and-encrypt-stream cipher in out :close-streams false)
@@ -629,17 +637,19 @@
   [^SecretKeySpec secret-key ^String input-filename ^String output-filename & {:keys [s-box] :or {s-box (byte-array s-box-crypto-pro-a)}}]
   (when (or (not (.exists (io/file input-filename))) (zero? (.length (io/file input-filename))))
     (throw (ex-info "File not exist or empty" {:input-file input-filename})))
-  (let [in         (io/input-stream input-filename)
-        iv         (byte-array (iv-length-by-algo-mode (algo-name secret-key) :cfb-mode))
-        _          (.read in iv)
-        mac-buffer (byte-array (mac-length-by-algo (algo-name secret-key)))
-        _          (.read in mac-buffer)
-        cipher     (new-decryption-cipher secret-key :cfb-mode (init-gost-sbox-binary-params (algo-name secret-key) iv s-box))
-        mac        (decrypt-bytes cipher mac-buffer)
-        out        (io/output-stream output-filename)
-        _          (decrypt-and-decompress-stream cipher in out :close-streams false)
-        _          (.close out)
-        new-mac    (mac-stream secret-key (io/input-stream output-filename) s-box)]
+  (let [in               (io/input-stream input-filename)
+        algo-name-string (algo-name secret-key)
+        cipher-mode      :cfb-mode
+        iv               (byte-array (iv-length-by-algo-mode algo-name-string cipher-mode))
+        _                (.read in iv)
+        mac-buffer       (byte-array (mac-length-by-algo algo-name-string))
+        _                (.read in mac-buffer)
+        cipher           (new-decryption-cipher secret-key cipher-mode (init-gost-sbox-binary-params algo-name-string iv s-box))
+        mac              (decrypt-bytes cipher mac-buffer)
+        out              (io/output-stream output-filename)
+        _                (decrypt-and-decompress-stream cipher in out :close-streams false)
+        _                (.close out)
+        new-mac          (mac-stream secret-key (io/input-stream output-filename) s-box)]
     (when (not= (into [] new-mac) (into [] mac))
       (throw (ex-info "Decrypted data is corrupted: Mac codes are different"
                {:mac     (common/bytes-to-hex mac)
