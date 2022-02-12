@@ -39,7 +39,7 @@
   (e/generate-secret-bytes-from-password "qwerty12345")) ;; => #object[javax.crypto.spec.SecretKeySpec
 
 ;;;;;;;;;;;;;;;
-;; High-level functions
+;; Encryption functions
 ;;;;;;;;;;;;;;;
 
 (def message "This text has length = 32 bytes.")
@@ -83,6 +83,12 @@
 
 (= (slurp "dev/src/examples/plain32.txt") (slurp "target/plain32.txt")) ;; => true
 
+
+
+;;;;;;;;;;;;;;;
+;; Mac functions
+;;;;;;;;;;;;;;;
+
 ;; To calculate Mac for a file (any binary file) use `mac-stream` function.
 ;; The encryption algorithm GOST3412-2015 or GOST28147-89 is already set in SecretKeySpec.
 ;; Mac value from the same data and same SecretKeySpec is always the same.
@@ -94,5 +100,23 @@
 ;; Mac value from the same data and same SecretKeySpec is always the same.
 (e/mac-stream secret-key-2015 (.getBytes message)) ;; => [B
 ;; [-111, 125, 10, -34, -109, -109, 41, 115, 81, 61, -90, -80, 16, 71, -108, 91]
+
+
+;;;;;;;;;;;;;;;
+;; Low-level functions
+;;;;;;;;;;;;;;;
+
+;; IV length depends on encryption mode and algorithm
+(e/iv-length-by-algo-mode e/gost3412-2015 :cfb-mode)        ;; => 16
+(e/iv-length-by-algo-mode e/gost3412-2015 :cbc-mode)        ;; => 16
+(e/iv-length-by-algo-mode e/gost3412-2015 :ctr-mode)        ;; => 8 !!
+
+(e/iv-length-by-algo-mode e/gost28147 :cfb-mode)        ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :cbc-mode)        ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :ctr-mode)        ;; => 8
+
+;; Mac length
+(e/mac-length-by-algo e/gost3412-2015)                      ;; => 16
+(e/mac-length-by-algo e/gost28147)                          ;; => 4
 
 

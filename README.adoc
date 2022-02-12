@@ -150,8 +150,31 @@ Require necessary namespaces:
 (e/mac-stream secret-key-2015 (.getBytes message)) ;; => [B
 ;; [-111, 125, 10, -34, -109, -109, 41, 115, 81, 61, -90, -80, 16, 71, -108, 91]
 
+----
+
+== Some low-level functions
+
+[source,clojure]
+----
+;;;;;;;;;;;;;;;
+;; Low-level functions
+;;;;;;;;;;;;;;;
+
+;; IV length depends on encryption mode and algorithm
+(e/iv-length-by-algo-mode e/gost3412-2015 :cfb-mode)        ;; => 16
+(e/iv-length-by-algo-mode e/gost3412-2015 :cbc-mode)        ;; => 16
+(e/iv-length-by-algo-mode e/gost3412-2015 :ctr-mode)        ;; => 8 !!
+
+(e/iv-length-by-algo-mode e/gost28147 :cfb-mode)        ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :cbc-mode)        ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :ctr-mode)        ;; => 8
+
+;; Mac length
+(e/mac-length-by-algo e/gost3412-2015)                      ;; => 16
+(e/mac-length-by-algo e/gost28147)                          ;; => 4
 
 ----
+
 
 == Build this project
 
