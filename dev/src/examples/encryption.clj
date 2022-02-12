@@ -7,16 +7,16 @@
 ;; This will return a 256-bit random secret key as a SecretKeySpec object.
 ;; The algorithm is set to GOST3412-2015
 (def secret-key-2015 (e/generate-secret-key))
-(e/algo-name secret-key-2015) ;; => GOST3412-2015
+(e/algo-name secret-key-2015)                               ;; => GOST3412-2015
 
 ;; To generate a secret key GOST28147-89 use `generate-secret-key` function with a parameter.
 ;; This will return a 256-bit random secret key as a SecretKeySpec object.
 ;; The algorithm is set to GOST28147.
 (def secret-key-89 (e/generate-secret-key e/gost28147))
-(e/algo-name secret-key-89) ;; => GOST28147
+(e/algo-name secret-key-89)                                 ;; => GOST28147
 
 ;; To convert a SecretKeySpec to a byte array:
-(e/secret-key->byte-array secret-key-2015) ;; => [B
+(e/secret-key->byte-array secret-key-2015)                  ;; => [B
 ;; [-38, -86, 71, -42, -69, 73, -33, 53, 72, 80, 38, 26, 57, 69, -114, -1,
 ;; -119, 13, 113, -84, -31, 54, -128, 114, -79, -55, 85, 126, 105, -96,
 ;; -37, -128]
@@ -24,19 +24,19 @@
 ;; To convert a byte array to SecretKeySpec:
 (e/byte-array->secret-key (byte-array [-38, -86, 71, -42, -69, 73, -33, 53, 72, 80, 38, 26, 57, 69, -114, -1,
                                        -119, 13, 113, -84, -31, 54, -128, 114, -79, -55, 85, 126, 105, -96,
-                                       -37, -128])) ;; => #object[javax.crypto.spec.SecretKeySpec
+                                       -37, -128]))         ;; => #object[javax.crypto.spec.SecretKeySpec
 
 ;; We can generate a secret key bytes from a password.
 ;; This function always return the same bytes value from the same String password.
 ;; By default, it uses min 10000 iterations of PBKDF2WITHHMACGOST3411 algorithm, recommended by NIST
-(e/generate-secret-bytes-from-password "qwerty12345") ;; => [B
+(e/generate-secret-bytes-from-password "qwerty12345")       ;; => [B
 ;;[-113, 62, 87, -90, 116, -44, -20, -98, 4, -108, 77, -59, -22, 25, -73,
 ;; 20, -31, 62, -86, 19, 103, 81, -64, 32, 74, 81, -32, -97, -78, 123,
 ;; -82, -70]
 
 ;; To convert it to SecretKeySpec
 (e/byte-array->secret-key
-  (e/generate-secret-bytes-from-password "qwerty12345")) ;; => #object[javax.crypto.spec.SecretKeySpec
+  (e/generate-secret-bytes-from-password "qwerty12345"))    ;; => #object[javax.crypto.spec.SecretKeySpec
 
 ;;;;;;;;;;;;;;;
 ;; Encryption functions
@@ -62,7 +62,7 @@
 ;; If Macs are the same then return plain data, otherwise throw an Exception.
 (def decrypted-message (e/unprotect-bytes secret-key-2015 encrypted-message))
 
-(= message (String. ^bytes decrypted-message)) ;; => true
+(= message (String. ^bytes decrypted-message))              ;; => true
 
 ;; To encrypt a file (any binary content) in a most secured way just use `protect-file` function.
 ;; The encryption algorithm GOST3412-2015 or GOST28147-89 is already set in SecretKeySpec.
@@ -98,7 +98,7 @@
 ;; To calculate Mac for a byte array (any binary file) use the same `mac-stream` function.
 ;; The encryption algorithm GOST3412-2015 or GOST28147-89 is already set in SecretKeySpec.
 ;; Mac value from the same data and same SecretKeySpec is always the same.
-(e/mac-stream secret-key-2015 (.getBytes message)) ;; => [B
+(e/mac-stream secret-key-2015 (.getBytes message))          ;; => [B
 ;; [-111, 125, 10, -34, -109, -109, 41, 115, 81, 61, -90, -80, 16, 71, -108, 91]
 
 
@@ -111,12 +111,32 @@
 (e/iv-length-by-algo-mode e/gost3412-2015 :cbc-mode)        ;; => 16
 (e/iv-length-by-algo-mode e/gost3412-2015 :ctr-mode)        ;; => 8 !!
 
-(e/iv-length-by-algo-mode e/gost28147 :cfb-mode)        ;; => 8
-(e/iv-length-by-algo-mode e/gost28147 :cbc-mode)        ;; => 8
-(e/iv-length-by-algo-mode e/gost28147 :ctr-mode)        ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :cfb-mode)            ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :cbc-mode)            ;; => 8
+(e/iv-length-by-algo-mode e/gost28147 :ctr-mode)            ;; => 8
 
 ;; Mac length
 (e/mac-length-by-algo e/gost3412-2015)                      ;; => 16
 (e/mac-length-by-algo e/gost28147)                          ;; => 4
 
+
+;; Random IV generation
+
+(e/new-iv-8)                                                ;; => [B
+;; [25, 117, -36, -32, -87, -128, -25, 23]
+
+(e/new-iv-16)                                               ;; => [B
+;; [29, -49, 83, 120, -125, 95, 41, -54, -11, -37, -2, -19, 123, -122,
+;; -21, 6]
+
+;; Also we can generate IV depend on cipher mode and algorithm name
+(e/new-iv e/gost28147 :cfb-mode)                            ;; => [B
+;; [-101, 29, 29, 55, 112, 14, 55, 104]
+
+(e/new-iv e/gost3412-2015 :cbc-mode)                        ;; => [B
+;; [6, 87, 96, -83, -128, 25, -57, -70, -54, 51, 9, -26, 73, -103, 64, 67]
+
+;; Warning! IV for :ctr-mode is always 8 bytes length for any algorithm
+(e/new-iv e/gost3412-2015 :ctr-mode)                        ;; => [B => [45, -71, 116, -67, 9, -39, -101, -51]
+(e/new-iv e/gost28147 :ctr-mode)                            ;; => [B => [8, 39, -126, -5, 122, -120, 1, -108]
 

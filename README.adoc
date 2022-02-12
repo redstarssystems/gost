@@ -85,6 +85,8 @@ Require necessary namespaces:
 
 == Encryption
 
+This is high-level functions.
+
 [source,clojure]
 ----
 ;;;;;;;;;;;;;;;
@@ -136,6 +138,8 @@ Require necessary namespaces:
 
 == Mac generation
 
+This is high-level functions.
+
 [source,clojure]
 ----
 ;; To calculate Mac for a file (any binary file) use `mac-stream` function.
@@ -154,12 +158,10 @@ Require necessary namespaces:
 
 == Some low-level functions
 
+IMPORTANT: Use these functions carefully. If you are not sure use High-level functions only! 
+
 [source,clojure]
 ----
-;;;;;;;;;;;;;;;
-;; Low-level functions
-;;;;;;;;;;;;;;;
-
 ;; IV length depends on encryption mode and algorithm
 (e/iv-length-by-algo-mode e/gost3412-2015 :cfb-mode)        ;; => 16
 (e/iv-length-by-algo-mode e/gost3412-2015 :cbc-mode)        ;; => 16
@@ -172,6 +174,53 @@ Require necessary namespaces:
 ;; Mac length
 (e/mac-length-by-algo e/gost3412-2015)                      ;; => 16
 (e/mac-length-by-algo e/gost28147)                          ;; => 4
+
+
+
+
+----
+
+=== Encryption modes
+
+This is for low-level functions.
+
+Available encryption modes for GOST3412-2015:
+
+- :cfb-mode is "GOST3412-2015/CFB/NoPadding"
+- :ctr-mode is "GOST3412-2015/CTR/NoPadding"
+- :cbc-mode is "GOST3412-2015/CBC/PKCS7Padding"
+
+Available encryption modes for GOST28147:
+
+- :cfb-mode is "GOST28147/CFB/NoPadding"
+- :ctr-mode is "GOST28147/CTR/NoPadding"
+- :cbc-mode is "GOST28147/CBC/PKCS7Padding"
+
+=== Random IV generation
+
+This is low-level functions.
+
+[source,clojure]
+----
+;; Random IV generation
+
+(e/new-iv-8)                                                ;; => [B
+;; [25, 117, -36, -32, -87, -128, -25, 23]
+
+(e/new-iv-16)                                               ;;=> [B
+;; [29, -49, 83, 120, -125, 95, 41, -54, -11, -37, -2, -19, 123, -122,
+;; -21, 6]
+
+;; Also we can generate IV depend on cipher mode and algorithm name
+(e/new-iv e/gost28147 :cfb-mode)                            ;; => [B
+;; [-101, 29, 29, 55, 112, 14, 55, 104]
+
+(e/new-iv e/gost3412-2015 :cbc-mode)                        ;; => [B
+;; [6, 87, 96, -83, -128, 25, -57, -70, -54, 51, 9, -26, 73, -103, 64, 67]
+
+;; Warning! IV for :ctr-mode is always 8 bytes length for any algorithm
+(e/new-iv e/gost3412-2015 :ctr-mode)                        ;; => [B => [45, -71, 116, -67, 9, -39, -101, -51]
+(e/new-iv e/gost28147 :ctr-mode)                            ;; => [B => [8, 39, -126, -5, 122, -120, 1, -108]
 
 ----
 

@@ -444,21 +444,6 @@
       (match (common/bytes-to-hex decrypted-bytes50) plain-50-hex))))
 
 
-(deftest ^:unit mac-bytes-test
-  (testing "Calculate MAC for plain data using GOST 3412-2015 is successful"
-    (let [secret-key  (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
-          mac-bytes32 (sut/mac-bytes secret-key (.getBytes plain-32))
-          mac-bytes50 (sut/mac-bytes secret-key (.getBytes plain-50))]
-      (match test-mac-gost3412-2015-plain-32 (common/bytes-to-hex mac-bytes32))
-      (match test-mac-gost3412-2015-plain-50 (common/bytes-to-hex mac-bytes50))))
-
-  (testing "Calculate MAC for plain data using GOST 28147-89 is successful"
-    (let [secret-key  (sut/byte-array->secret-key test-secret-key sut/gost28147)
-          mac-bytes32 (sut/mac-bytes secret-key (.getBytes plain-32))
-          mac-bytes50 (sut/mac-bytes secret-key (.getBytes plain-50))]
-      (match test-mac-gost28147-plain-32 (common/bytes-to-hex mac-bytes32))
-      (match test-mac-gost28147-plain-50 (common/bytes-to-hex mac-bytes50)))))
-
 
 (deftest ^:unit compress-bytes-test
   (testing "Compress bytes array is successful"

@@ -311,45 +311,6 @@
   (.doFinal cipher encrypted-bytes))
 
 
-(defn mac-28147
-  "Calculate MAC for plain data using secret-key and GOST28147 algorithm.
-  Returns byte array with calculated MAC."
-  ([^SecretKeySpec secret-key ^bytes plain-data]
-    (mac-28147 secret-key plain-data (byte-array s-box-crypto-pro-a)))
-  ;; by default we use CryptoPro_A_ParamSet
-
-  ([^SecretKeySpec secret-key ^bytes plain-data ^bytes s-box]
-    (Security/addProvider (BouncyCastleProvider.))
-    (let [params (ParametersWithSBox. (KeyParameter. (secret-key->byte-array secret-key)) s-box)
-          mac    (GOST28147Mac.)
-          _      (.init mac params)
-          buffer (byte-array mac-length-gost28147)]
-      (.update mac plain-data 0 (alength plain-data))
-      (.doFinal mac buffer 0)
-      buffer)))
-
-
-(defn mac-3412
-  "Calculate MAC for plain data using secret-key and GOST3412-2015 algorithm.
-  Returns byte array with calculated MAC."
-  [^SecretKeySpec secret-key ^bytes plain-data]
-  (Security/addProvider (BouncyCastleProvider.))
-  (let [mac (Mac/getInstance "GOST3412MAC" "BC")
-        _   (.init mac secret-key)]
-    (.doFinal mac plain-data)))
-
-
-(defn mac-bytes
-  "Calculate MAC for plain data bytes array using secret-key. Algorithm is set inside ^SecretKeySpec.
-  Returns byte array with calculated MAC."
-  ([^SecretKeySpec secret-key ^bytes plain-data]
-    (mac-bytes secret-key plain-data (byte-array s-box-crypto-pro-a)))
-  ([^SecretKeySpec secret-key ^bytes plain-data ^bytes s-box]
-    (condp = (algo-name secret-key)
-      gost3412-2015 (mac-3412 secret-key plain-data)
-      gost28147 (mac-28147 secret-key plain-data s-box))))
-
-
 (defn mac-3412-stream
   "Calculate MAC for input stream using secret-key and GOST3412. Algorithm is set inside ^SecretKeySpec.
   As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
