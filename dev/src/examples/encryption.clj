@@ -1,6 +1,7 @@
 (ns examples.encryption
   (:require
-    [org.rssys.gost.encrypt :as e]))
+    [org.rssys.gost.encrypt :as e])
+  (:import (org.bouncycastle.asn1 ASN1ObjectIdentifier)))
 
 
 ;; To generate a secret key for the GOST3412-2015 use `generate-secret-key` function.
@@ -140,3 +141,38 @@
 (e/new-iv e/gost3412-2015 :ctr-mode)                        ;; => [B => [45, -71, 116, -67, 9, -39, -101, -51]
 (e/new-iv e/gost28147 :ctr-mode)                            ;; => [B => [8, 39, -126, -5, 122, -120, 1, -108]
 
+
+;; Create Cipher for GOST28147 in CFB, CTR, CBC mode
+(def cipher1 (e/init-cipher-mode e/gost28147 :cfb-mode))
+(def cipher2 (e/init-cipher-mode e/gost28147 :ctr-mode))
+(def cipher3 (e/init-cipher-mode e/gost28147 :cbc-mode))
+
+;; Create Cipher for GOST3412-2015 in CFB, CTR, CBC mode
+(def cipher4 (e/init-cipher-mode e/gost3412-2015 :cfb-mode))
+(def cipher5 (e/init-cipher-mode e/gost3412-2015 :ctr-mode))
+(def cipher6 (e/init-cipher-mode e/gost3412-2015 :cbc-mode))
+
+
+;; Init GOST 28147 with named parameters
+(def secret-key (e/generate-secret-key e/gost28147))        ;; generate secret key
+(def iv (e/new-iv (e/algo-name secret-key) :cfb-mode))      ;; generate new random IV
+(def algo-param-spec (e/init-gost-named-params (e/algo-name secret-key) iv "E-A")) ;; Init GOST with "E-A" parameters
+
+;; Init GOST 28147 with OID parameters
+;; See https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.html
+(e/init-gost-oid-params e/gost28147 iv (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
+
+;; Init GOST 28147 with S-box as binary array
+;; https://datatracker.ietf.org/doc/html/rfc4357
+;; id-Gost28147-89-CryptoPro-A-ParamSet
+(def ^:const s-box-crypto-pro-a
+  [9 6 3 2 8 11 1 7 10 4 14 15 12 0 13 5
+   3 7 14 9 8 10 15 0 5 2 6 12 11 4 13 1
+   14 4 6 2 11 3 13 8 12 15 5 10 0 7 1 9
+   14 7 10 12 13 1 3 9 0 2 11 4 15 8 5 6
+   11 5 1 9 8 13 15 0 14 4 2 3 12 7 10 6
+   3 10 13 12 1 2 0 11 7 5 9 4 8 15 14 6
+   1 13 2 9 7 10 6 0 8 12 4 5 15 3 11 14
+   11 10 15 5 0 12 14 8 6 2 3 9 1 7 13 4])
+
+(e/init-gost-sbox-binary-params e/gost28147 iv (byte-array s-box-crypto-pro-a))
