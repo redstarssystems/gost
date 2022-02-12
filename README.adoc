@@ -1,4 +1,4 @@
-== GOST library
+= GOST library
 :git:               https://git-scm.com[git]
 :clojure-deps-cli:  https://clojure.org/guides/getting_started[clojure deps cli]
 :tools-build:       https://clojure.org/guides/tools_build[tools-build]
@@ -23,12 +23,12 @@ The library provides:
 
 This library is successor of https://github.com/middlesphere/crypto-gost[crypto-gost].
 
-=== Build this project
+== Build this project
 
 Project org.rssys/gost generated from https://github.com/redstarssystems/libtemplate[Library template].
 
 [#install-prerequisites]
-==== Install prerequisites
+===Install prerequisites
 
 All these tools you need to install only once.
 
@@ -82,7 +82,7 @@ bb requirements
 ----
 to install other necessary tools (MacOS only, for Linux manual instruction).
 
-=== Project workflow
+== Project workflow
 
 To configure project workflow scripts use `bb.edn` and `build.clj` files.
 
