@@ -43,6 +43,8 @@ Require necessary namespaces:
 
 == Secret key generation
 
+This is high-level functions.
+
 [source, clojure]
 ----
 
@@ -184,17 +186,17 @@ IMPORTANT: Use these functions carefully. If you are not sure use High-level fun
 
 This is for low-level functions.
 
-Available encryption modes for GOST3412-2015:
+Available encryption modes for _GOST3412-2015_:
 
-- :cfb-mode is "GOST3412-2015/CFB/NoPadding"
-- :ctr-mode is "GOST3412-2015/CTR/NoPadding"
-- :cbc-mode is "GOST3412-2015/CBC/PKCS7Padding"
+- `:cfb-mode` is "GOST3412-2015/CFB/NoPadding"
+- `:ctr-mode` is "GOST3412-2015/CTR/NoPadding"
+- `:cbc-mode` is "GOST3412-2015/CBC/PKCS7Padding"
 
-Available encryption modes for GOST28147:
+Available encryption modes for _GOST28147_:
 
-- :cfb-mode is "GOST28147/CFB/NoPadding"
-- :ctr-mode is "GOST28147/CTR/NoPadding"
-- :cbc-mode is "GOST28147/CBC/PKCS7Padding"
+- `:cfb-mode` is "GOST28147/CFB/NoPadding"
+- `:ctr-mode` is "GOST28147/CTR/NoPadding"
+- `:cbc-mode` is "GOST28147/CBC/PKCS7Padding"
 
 === Random IV generation
 
@@ -307,5 +309,5 @@ requirements Install project requirements
 
 == License
 
-Copyright © 2021 Mike Ananev +
+Copyright © 2022 Mike Ananev +
 Distributed under the Eclipse Public License 1.0 or (at your option) any later version.
