@@ -240,6 +240,11 @@ This is high-level functions.
 (common/bytes-to-hex h3)                                    ;; =>
 ;; "14923d761858aa272028855999c0bd3f37964e98bb3bb163825ecfbcd049e10f612566053031bec01611bc9584ef24aa80073cecc51d125fe989a973dd1f6813"
 
+;; To generate GOST3411-2012-256 HMAC from file use the same `hmac-2012-256` function
+(def h4 (d/hmac-2012-256 "dev/src/examples/plain32.txt" secret-key))
+
+(common/bytes-to-hex h4)                                    ;; =>
+;; "2c36afad546eb7026b1bfd92dc83a6e6cfd20f301a786fed41fd3c2213214d43"
 ----
 
 
