@@ -1,9 +1,9 @@
 (ns examples.encryption
   (:require
-    [org.rssys.gost.encrypt :as e])
-  (:import (javax.crypto.spec IvParameterSpec)))
+    [org.rssys.gost.encrypt :as e]))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; High-level functions
 
 ;; To generate a secret key for the GOST3412-2015 use `generate-secret-key` function.
@@ -106,11 +106,11 @@
 ;; [-111, 125, 10, -34, -109, -109, 41, 115, 81, 61, -90, -80, 16, 71, -108, 91]
 
 
-;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Low-level functions.
 ;; Don't use these low-level functions if you are not sure.
 ;; Use only high-level functions
-;;;;;;;;;;;;;;;
+
 
 ;; IV length depends on encryption mode and algorithm
 (e/iv-length-by-algo-mode e/gost3412-2015 :cfb-mode)        ;; => 16
@@ -146,7 +146,7 @@
 (e/new-iv e/gost3412-2015 :ctr-mode)                        ;; => [B => [45, -71, 116, -67, 9, -39, -101, -51]
 (e/new-iv e/gost28147 :ctr-mode)                            ;; => [B => [8, 39, -126, -5, 122, -120, 1, -108]
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Create Cipher for GOST28147 in CFB, CTR, CBC mode
 (def cipher1 (e/init-cipher-mode e/gost28147 :cfb-mode))
 (def cipher2 (e/init-cipher-mode e/gost28147 :ctr-mode))
@@ -159,14 +159,15 @@
 (def cipher6 (e/init-cipher-mode e/gost3412-2015 :cbc-mode))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Init GOST 28147 with named parameters
-(def secret-key (e/generate-secret-key e/gost28147))        ;; generate secret key
-(def iv (e/new-iv (e/algo-name secret-key) :cfb-mode))      ;; generate new random IV
-(def algo-param-spec (e/init-gost-named-params (e/algo-name secret-key) iv "E-A")) ;; Init GOST with "E-A" parameters
+(def secret-key-89 (e/generate-secret-key e/gost28147))     ;; generate secret key
+(def iv-8 (e/new-iv (e/algo-name secret-key-89) :cfb-mode)) ;; generate new random IV
+(def algo-param-spec (e/init-gost-named-params (e/algo-name secret-key-89) iv-8 "E-A")) ;; Init GOST with "E-A" parameters
 
 ;; Init GOST 28147 with OID parameters
 ;; See https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.html
-(e/init-gost-oid-params e/gost28147 iv (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
+(e/init-gost-oid-params e/gost28147 iv-8 (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
 
 
 ;; Init GOST 28147 with S-box as binary array
@@ -183,25 +184,107 @@
    11 10 15 5 0 12 14 8 6 2 3 9 1 7 13 4])
 
 
-(e/init-gost-sbox-binary-params e/gost28147 iv (byte-array s-box-crypto-pro-a))
+(e/init-gost-sbox-binary-params e/gost28147 iv-8 (byte-array s-box-crypto-pro-a))
 
 
 ;; Init cipher for GOST3412-2015,  generate random IV automatically
 (def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode))
+
+
 ;; extract IV
 (.getIV cipher-2015)                                        ;; => [B
 ;;[105, 13, 115, 71, 2, -23, 6, 82, -30, -13, 113, -12, -34, 69, -6, 27]
 
 ;; Init cipher for GOST28147,  generate random IV automatically
 (def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode))
+
+
 ;; extract IV
 (.getIV cipher-89)                                          ;; => [-84, -116, -60, -99, 89, 43, -107, 127]
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Init cipher for GOST3412-2015,  with AlgoParamsSpec, IV should be always random
+(def cipher-2015-2
+  (e/new-encryption-cipher secret-key-2015 :cfb-mode
+    (javax.crypto.spec.IvParameterSpec. (e/new-iv-16))))
 
-;; Init cipher for GOST3412-2015,  with AlgoParamsSpec
-(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode
-                   (javax.crypto.spec.IvParameterSpec. (e/new-iv-16))))
 
-;; Init cipher for GOST28147,  with AlgoParamsSpec
-(def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode
-                 (e/init-gost-named-params (e/algo-name secret-key-89) (e/new-iv-8) "E-A")))
+;; Init cipher for GOST28147,  with AlgoParamsSpec, IV should be always random
+(def cipher-89-2
+  (e/new-encryption-cipher secret-key-89 :cfb-mode
+    (e/init-gost-named-params (e/algo-name secret-key-89) (e/new-iv-8) "E-A")))
+
+
+;; Init decryption cipher for GOST3412-2015
+(def iv-16 (.getIV cipher-2015-2))                          ;; we should use the same IV which was used in encryption phase
+(def decryption-cipher-2015
+  (e/new-decryption-cipher secret-key-2015 :cfb-mode
+    (javax.crypto.spec.IvParameterSpec. iv-16)))
+
+
+;; Init decryption cipher for GOST28147
+;; we should use the same IV and S-boxes which were used in encryption phase
+(def iv8 (.getIV cipher-89-2))
+
+
+(def decryption-cipher-89
+  (e/new-decryption-cipher secret-key-89 :cfb-mode
+    (e/init-gost-named-params (e/algo-name secret-key-89) iv8 "E-A")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Init cipher for GOST3412-2015,  generate random IV automatically
+(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode))
+(def iv-16 (.getIV cipher-2015))
+(def decryption-cipher-2015 (e/new-decryption-cipher secret-key-2015 :cfb-mode (javax.crypto.spec.IvParameterSpec. iv-16)))
+
+
+;; To encrypt bytes use `encrypt-bytes` function and Cipher initialized with
+;; secret key and random IV in encryption mode
+(def e1 (e/encrypt-bytes cipher-2015 (.getBytes message)))  ;; => [B
+;;[79, 67, 111, -67, 4, 99, 92, -68, 66, -35, 77, -6, 115, 56, 108, 47,
+;; -124, -82, 107, -18, -95, -125, -18, 106, -53, -21, 0, -108, -48, 41,
+;; -86, -84]
+
+;; Remember, you should know IV which was used during encryption to decrypt it.
+
+;; To decrypt bytes use `decrypt-bytes` function and Cipher initialized with
+;; the same secret key and the same IV in decryption mode
+(String. ^bytes (e/decrypt-bytes decryption-cipher-2015 e1)) ;; => "This text has length = 32 bytes."
+
+
+;; To encrypt file use `encrypt-stream` function and Cipher initialized with
+;; secret key and random IV in encryption mode
+(e/encrypt-stream cipher-2015 "dev/src/examples/plain32.txt" "target/plain32.enc")
+
+
+;; Remember, you should know IV which was used during encryption to decrypt it.
+
+;; To decrypt file use `decrypt-stream` function and Cipher initialized with
+;; the same secret key and the same IV in decryption mode
+(e/decrypt-stream decryption-cipher-2015 "target/plain32.enc" "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+(slurp "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; To compress plain bytes to hide its internal structure before encryption use `compress-bytes` function
+(def cb (e/compress-bytes (.getBytes message)))                    ;; => [B
+;;[120, -38, 11, -55, -56, 44, 86, 40, 73, -83, 40, 81, -56, 72, 44, 86,
+;; -56, 73, -51, 75, 47, -55, 80, -80, 85, 48, 54, 82, 72, -86, 44, 73,
+;; 45, -42, 3, 0, -71, 112, 10, -45]
+
+;; To decompress plain bytes use `decompress-bytes` function
+(String. (e/decompress-bytes cb))                   ;; => "This text has length = 32 bytes."
+
+;; To compress file to hide its internal structure before encryption use `compress-stream` function
+(e/compress-stream "dev/src/examples/plain32.txt" "target/plain32.gz")
+
+
+;; To decompress file use `decompress-stream` function
+(e/decompress-stream "target/plain32.gz" "target/plain32.txt")
+
+(slurp "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

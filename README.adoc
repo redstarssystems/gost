@@ -255,8 +255,8 @@ The GOST28147-89 has several named `S-box` parameters:
 [source,clojure]
 ----
 (def secret-key (e/generate-secret-key e/gost28147))        ;; generate secret key
-(def iv (e/new-iv (e/algo-name secret-key) :cfb-mode))      ;; generate new random IV
-(def algo-param-spec (e/init-gost-named-params (e/algo-name secret-key) iv "E-A")) ;; Init GOST with "E-A" parameters
+(def iv-8 (e/new-iv (e/algo-name secret-key) :cfb-mode))      ;; generate new random IV
+(def algo-param-spec (e/init-gost-named-params (e/algo-name secret-key) iv-8 "E-A")) ;; Init GOST with "E-A" parameters
 ----
 
 ==== GOST OID parameters
@@ -268,7 +268,7 @@ https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.
 ----
 ;; Init GOST with OID parameters
 ;; See https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.html
-(e/init-gost-oid-params e/gost28147 iv (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
+(e/init-gost-oid-params e/gost28147 iv-8 (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
 ----
 
 ==== GOST binary S-box parameters
@@ -290,7 +290,7 @@ The GOST28147-89 may be initialized with 'S-boxes' as bytes array:
    1 13 2 9 7 10 6 0 8 12 4 5 15 3 11 14
    11 10 15 5 0 12 14 8 6 2 3 9 1 7 13 4])
 
-(e/init-gost-sbox-binary-params e/gost28147 iv (byte-array s-box-crypto-pro-a))
+(e/init-gost-sbox-binary-params e/gost28147 iv-8 (byte-array s-box-crypto-pro-a))
 ----
 
 
@@ -312,13 +312,102 @@ The `new-encryption-cipher` is a low-level function.
 (.getIV cipher-89) ;; => [-84, -116, -60, -99, 89, 43, -107, 127]
 
 
-;; Init cipher for GOST3412-2015,  with AlgoParamsSpec
+;; Init cipher for GOST3412-2015,  with AlgoParamsSpec, IV should be always random
 (def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode 
                    (javax.crypto.spec.IvParameterSpec. (e/new-iv-16))))
 
-;; Init cipher for GOST28147,  with AlgoParamsSpec
+;; Init cipher for GOST28147,  with AlgoParamsSpec, IV should be always random
 (def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode
                  (e/init-gost-named-params (e/algo-name secret-key-89) (e/new-iv-8) "E-A")))
+----
+
+
+==== Decryption mode
+
+The `new-decryption-cipher` is a low-level function.
+
+[source,clojure]
+----
+;; Init decryption cipher for GOST3412-2015
+(def iv-16 (.getIV cipher-2015))            ;; we should use the same IV which was used in encryption phase
+(def decryption-cipher-2015 (e/new-decryption-cipher secret-key-2015 :cfb-mode
+                              (javax.crypto.spec.IvParameterSpec. iv-16)))
+
+;; Init decryption cipher for GOST28147
+;; we should use the same IV and S-boxes which were used in encryption phase
+(def iv-8 (.getIV cipher-89)) 
+(def decryption-cipher-89 (e/new-decryption-cipher secret-key-89 :cfb-mode
+                            (e/init-gost-named-params (e/algo-name secret-key-89) iv-8 "E-A")))
+
+
+----
+
+==== Encryption/Decryption
+
+*This is low-level functions.*
+
+[source,clojure]
+.enc.clj
+----
+;; Init cipher for GOST3412-2015,  generate random IV automatically
+(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode))
+(def iv-16 (.getIV cipher-2015))
+(def decryption-cipher-2015 (e/new-decryption-cipher secret-key-2015 :cfb-mode (javax.crypto.spec.IvParameterSpec. iv-16)))
+
+;; To encrypt bytes use `encrypt-bytes` function and Cipher initialized with
+;; secret key and random IV in encryption mode
+(def e1 (e/encrypt-bytes cipher-2015 (.getBytes message)))  ;; => [B
+;;[79, 67, 111, -67, 4, 99, 92, -68, 66, -35, 77, -6, 115, 56, 108, 47,
+;; -124, -82, 107, -18, -95, -125, -18, 106, -53, -21, 0, -108, -48, 41,
+;; -86, -84]
+
+;; Remember, you should know IV which was used during encryption to decrypt it.
+
+;; To decrypt bytes use `decrypt-bytes` function and Cipher initialized with
+;; the same secret key and the same IV in decryption mode
+(String. ^bytes (e/decrypt-bytes decryption-cipher-2015 e1)) ;; => "This text has length = 32 bytes."
+
+
+;; To encrypt file use `encrypt-stream` function and Cipher initialized with
+;; secret key and random IV in encryption mode
+(e/encrypt-stream cipher-2015 "dev/src/examples/plain32.txt" "target/plain32.enc")
+
+
+;; Remember, you should know IV which was used during encryption to decrypt it.
+
+;; To decrypt file use `decrypt-stream` function and Cipher initialized with
+;; the same secret key and the same IV in decryption mode
+(e/decrypt-stream decryption-cipher-2015 "target/plain32.enc" "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+(slurp "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+----
+
+
+==== Compression / Decompression
+
+*This is low-level functions.*
+
+[source,clojure]
+.comp-decomp.clj
+----
+;; To compress plain bytes to hide its internal structure before encryption use `compress-bytes` function
+(def cb (e/compress-bytes (.getBytes message)))                    ;; => [B
+;;[120, -38, 11, -55, -56, 44, 86, 40, 73, -83, 40, 81, -56, 72, 44, 86,
+;; -56, 73, -51, 75, 47, -55, 80, -80, 85, 48, 54, 82, 72, -86, 44, 73,
+;; 45, -42, 3, 0, -71, 112, 10, -45]
+
+;; To decompress plain bytes use `decompress-bytes` function
+(String. (e/decompress-bytes cb))                   ;; => "This text has length = 32 bytes."
+
+;; To compress file to hide its internal structure before encryption use `compress-stream` function
+(e/compress-stream "dev/src/examples/plain32.txt" "target/plain32.gz")
+
+;; To decompress file use `decompress-stream` function
+(e/decompress-stream "target/plain32.gz" "target/plain32.txt")
+
+(slurp "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
 ----
 
 
