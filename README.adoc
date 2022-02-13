@@ -217,6 +217,8 @@ This is high-level functions.
 .hmac.clj
 ----
 
+(def message "The quick brown fox jumps over the lazy dog")
+
 ;; generate secret key from password
 (def secret-key (e/generate-secret-bytes-from-password "12345678"))
 
