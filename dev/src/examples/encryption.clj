@@ -312,6 +312,7 @@
 
 (def baosd (ByteArrayOutputStream.))
 
+;; Remember, you should know IV which was used during encryption to decrypt it.
 
 ;; To decompress and decrypt use `decrypt-and-decompress-stream` function
 (e/decrypt-and-decompress-stream decryption-cipher-2015 ceb baosd)
@@ -320,6 +321,7 @@
 ;; To compress and encrypt file  use `compress-and-encrypt-stream` function
 (e/compress-and-encrypt-stream cipher-2015 "dev/src/examples/plain32.txt" "target/plain32.egz")
 
+;; Remember, you should know IV which was used during encryption to decrypt it.
 
 ;; To decompress and decrypt file use `decrypt-and-decompress-stream` function
 (e/decrypt-and-decompress-stream decryption-cipher-2015 "target/plain32.egz" "target/plain32.txt")
