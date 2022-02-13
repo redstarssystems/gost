@@ -1,8 +1,8 @@
 (ns examples.encryption
   (:require
-    [org.rssys.gost.encrypt :as e])
-  (:import (org.bouncycastle.asn1 ASN1ObjectIdentifier)))
+    [org.rssys.gost.encrypt :as e]))
 
+;; High-level functions
 
 ;; To generate a secret key for the GOST3412-2015 use `generate-secret-key` function.
 ;; This will return a 256-bit random secret key as a SecretKeySpec object.
@@ -40,7 +40,7 @@
   (e/generate-secret-bytes-from-password "qwerty12345"))    ;; => #object[javax.crypto.spec.SecretKeySpec
 
 ;;;;;;;;;;;;;;;
-;; Encryption functions
+;; Encryption functions. High-level functions
 ;;;;;;;;;;;;;;;
 
 (def message "This text has length = 32 bytes.")
@@ -88,6 +88,7 @@
 
 ;;;;;;;;;;;;;;;
 ;; Mac functions
+;; High-level functions
 ;;;;;;;;;;;;;;;
 
 ;; To calculate Mac for a file (any binary file) use `mac-stream` function.
@@ -104,7 +105,9 @@
 
 
 ;;;;;;;;;;;;;;;
-;; Low-level functions
+;; Low-level functions.
+;; Don't use these low-level functions if you are not sure.
+;; Use only high-level functions
 ;;;;;;;;;;;;;;;
 
 ;; IV length depends on encryption mode and algorithm
@@ -147,6 +150,7 @@
 (def cipher2 (e/init-cipher-mode e/gost28147 :ctr-mode))
 (def cipher3 (e/init-cipher-mode e/gost28147 :cbc-mode))
 
+
 ;; Create Cipher for GOST3412-2015 in CFB, CTR, CBC mode
 (def cipher4 (e/init-cipher-mode e/gost3412-2015 :cfb-mode))
 (def cipher5 (e/init-cipher-mode e/gost3412-2015 :ctr-mode))
@@ -162,6 +166,7 @@
 ;; See https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.html
 (e/init-gost-oid-params e/gost28147 iv (org.bouncycastle.asn1.ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))
 
+
 ;; Init GOST 28147 with S-box as binary array
 ;; https://datatracker.ietf.org/doc/html/rfc4357
 ;; id-Gost28147-89-CryptoPro-A-ParamSet
@@ -175,4 +180,19 @@
    1 13 2 9 7 10 6 0 8 12 4 5 15 3 11 14
    11 10 15 5 0 12 14 8 6 2 3 9 1 7 13 4])
 
+
 (e/init-gost-sbox-binary-params e/gost28147 iv (byte-array s-box-crypto-pro-a))
+
+
+;; Init cipher for GOST3412-2015,  generate random IV automatically
+(def secret-key-2015 (e/generate-secret-key e/gost3412-2015))
+(def cipher-2015 (e/new-encryption-cipher secret-key :cfb-mode))
+;; extract IV
+(.getIV cipher-2015)                                             ;; => [B
+;;[105, 13, 115, 71, 2, -23, 6, 82, -30, -13, 113, -12, -34, 69, -6, 27]
+
+;; Init cipher for GOST28147,  generate random IV automatically
+(def secret-key-89 (e/generate-secret-key e/gost28147))
+(def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode))
+;; extract IV
+(.getIV cipher-89) ;; => [-84, -116, -60, -99, 89, 43, -107, 127]
