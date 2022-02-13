@@ -1,7 +1,8 @@
 (ns examples.digest
   (:require
     [org.rssys.gost.common :as common]
-    [org.rssys.gost.digest :as d]))
+    [org.rssys.gost.digest :as d]
+    [org.rssys.gost.encrypt :as e]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -45,3 +46,27 @@
 
 (common/bytes-to-hex d6)                                    ;; =>
 ;; "7f75cf439c41420b25a3964ab0608af592c9af44e852dcbc18ae9fcfa0c2d7e3edda83715d23d30e5d3dc521290c66980695faa69adc7c5854ced01f0af6f0e9"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; generate secret key from password
+(def secret-key (e/generate-secret-bytes-from-password "12345678"))
+
+
+;; Generate HMAC using GOST3411-94 and secret-key
+(def h1 (d/hmac-3411-94 (.getBytes message) secret-key))
+
+(common/bytes-to-hex h1)                                    ;; =>
+;; "1ffb045ab775c674b5809d6f5c180c73be459223e93951e8c19cc1e0ed559b20"
+
+;; Generate HMAC using GOST3411-2012-256 and secret-key
+(def h2 (d/hmac-2012-256 (.getBytes message) secret-key))
+
+(common/bytes-to-hex h2)                                    ;; =>
+;; "405854baba2cc90661f1ff08e40c2cd0fb36869a5a32f655f51ea6fd577c6d84"
+
+;; Generate HMAC using GOST3411-2012-512 and secret-key
+(def h3 (d/hmac-2012-512 (.getBytes message) secret-key))
+
+(common/bytes-to-hex h3)                                    ;; =>
+;; "14923d761858aa272028855999c0bd3f37964e98bb3bb163825ecfbcd049e10f612566053031bec01611bc9584ef24aa80073cecc51d125fe989a973dd1f6813"

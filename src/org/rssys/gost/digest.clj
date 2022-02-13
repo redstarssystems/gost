@@ -12,6 +12,10 @@
       GOST3411Digest
       GOST3411_2012_256Digest
       GOST3411_2012_512Digest)
+    (org.bouncycastle.crypto.macs
+      HMac)
+    (org.bouncycastle.crypto.params
+      KeyParameter)
     (org.bouncycastle.jce.provider
       BouncyCastleProvider)))
 
@@ -95,3 +99,60 @@
   ^bytes
   [input & {:keys [close-streams?] :or {close-streams? true}}]
   (digest-stream input :digest-class (:3411-2012-512 digest-classes-map) :close-streams? close-streams?))
+
+
+(defn hmac-stream
+  "Calculate HMAC for input stream using `secret-key`.
+  As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
+  coerced to BufferedInputStream."
+  [input ^bytes secret-key & {:keys [close-streams? digest-class] :or
+                              {close-streams? true
+                               digest-class   (:3411-2012-256 digest-classes-map)}}]
+  (Security/addProvider (BouncyCastleProvider.))
+  (assert (instance? Digest digest-class) "Got wrong Digest class. Should be instance of ^Digest.")
+  (assert (string/includes? (.getAlgorithmName digest-class) "GOST") "Should be instance of GOST digest class.")
+  (let [in          (io/input-stream input)
+        hmac-class  (HMac. digest-class)
+        _           (when (< (alength secret-key) 32)
+                      (throw (ex-info (format "Seed bytes should be %s+ bytes length" 32)
+                               {:seed-bytes-length (alength secret-key)})))
+        _           (.init hmac-class (KeyParameter. secret-key))
+        buf         (byte-array 1024)
+        hmac-buffer (byte-array (.getMacSize hmac-class))]
+    (loop [n (.read in buf)]
+      (if (<= n 0)
+        (do (.doFinal hmac-class hmac-buffer 0) hmac-buffer)
+        (recur (do (.update hmac-class buf 0 n) (.read in buf)))))
+    (when close-streams? (.close in))
+    hmac-buffer))
+
+
+(defn hmac-3411-94
+  "Calculate HMAC GOST3411-94 using `secret-key` for input stream.
+  As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
+  coerced to BufferedInputStream.
+  Returns 256 bit byte array."
+  ^bytes
+  [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
+  (hmac-stream input secret-key :digest-class (:3411-94 digest-classes-map) :close-streams? close-streams?))
+
+
+(defn hmac-2012-256
+  "Calculate HMAC GOST3411-2012-256 using `secret-key` for input stream.
+  As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
+  coerced to BufferedInputStream.
+  Returns 256 bit byte array."
+  ^bytes
+  [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
+  (hmac-stream input secret-key :digest-class (:3411-2012-256 digest-classes-map) :close-streams? close-streams?))
+
+
+(defn hmac-2012-512
+  "Calculate HMAC GOST3411-2012-512 using `secret-key` for input stream.
+  As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
+  coerced to BufferedInputStream.
+  Returns 512 bit byte array."
+  ^bytes
+  [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
+  (hmac-stream input secret-key :digest-class (:3411-2012-512 digest-classes-map) :close-streams? close-streams?))
+

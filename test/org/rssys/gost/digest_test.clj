@@ -85,3 +85,33 @@
       (match (common/bytes-to-hex result) "6fa8592b1cd28ca72d87e7d413d8b3de31077098bed3818d98f6f79bac5cc645")
       (match (common/bytes-to-hex result2) "6fa8592b1cd28ca72d87e7d413d8b3de31077098bed3818d98f6f79bac5cc645")
       (match m4 (slurp input)))))
+
+
+(deftest ^:unit hmac-stream-test
+
+  (testing "HMAC for the same data and the same secret key are always the same"
+    (let [secret-key (byte-array [0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1])
+          r1         (sut/hmac-3411-94 (.getBytes m2) secret-key)
+          r2         (sut/hmac-2012-256 (.getBytes m2) secret-key)
+          r3         (sut/hmac-2012-512 (.getBytes m2) secret-key)]
+      (match (common/bytes-to-hex r1) "3c5b39f1b9b22a0b76516796e2bd663d7adccb86ecf2d361ebd87eacb9a60953")
+      (match (common/bytes-to-hex r2) "8eeb292527987200713fcae90041c5abf91759e6cb94c7e72b2d6a9827f66f26")
+      (match (common/bytes-to-hex r3) "5f6d6e56f39c8ad9a6cde18b46e51336f4cc20ae8916915e031ce2307c3c0c452cabe60eb1530f3f7088c93de37252b4f4c023a7cd635848c60d1fb48cb1b0e9")))
+
+  (testing "HMAC for the same data and the other secret key are always different"
+    (let [secret-key-2 (byte-array [1 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1])
+          r1           (sut/hmac-3411-94 (.getBytes m2) secret-key-2)
+          r2           (sut/hmac-2012-256 (.getBytes m2) secret-key-2)
+          r3           (sut/hmac-2012-512 (.getBytes m2) secret-key-2)]
+      (match (common/bytes-to-hex r1) "b3d8070b2b585b8c8e27e87b48e1e24012352aa890506a0cbeb764be9bacd660")
+      (match (common/bytes-to-hex r2) "f9d56fedcea1272344f1313ff2e52ded04fd296bffd6c1a1118d750dd6513534")
+      (match (common/bytes-to-hex r3) "1c1a16309b4389fb9cbc660069104197e0d542c3f734412ab4d7d86cdf52f70fc9b875710318600e1182185d4c0a35bf62f10ca13ce3cd4c5f02f5baa6b9a66e")))
+
+  (testing "HMAC for the other data and the same secret key are always different"
+    (let [secret-key (byte-array [0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1])
+          r1         (sut/hmac-3411-94 (.getBytes (str m2 "1")) secret-key)
+          r2         (sut/hmac-2012-256 (.getBytes (str m2 "1")) secret-key)
+          r3         (sut/hmac-2012-512 (.getBytes (str m2 "1")) secret-key)]
+      (match (common/bytes-to-hex r1) "1a901866e12dcc6357a6468ad8a54793bf13da13f7f2985d8fbeab1d19283301")
+      (match (common/bytes-to-hex r2) "2980fa8f6cbd703257790983315d3dd04709e831bd422f222d9e3302526ffc60")
+      (match (common/bytes-to-hex r3) "9efa1a55a33f36156b5126eb40616d000cf2edaa0491392524cb3e2849e3f235bf5c24a9bdf36758ea1644b1f4496e00afad5d6b2466d6fe6971613103aed003"))))
