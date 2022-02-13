@@ -301,17 +301,24 @@ The `new-encryption-cipher` is a low-level function.
 [source,clojure]
 ----
 ;; Init cipher for GOST3412-2015,  generate random IV automatically
-(def secret-key-2015 (e/generate-secret-key e/gost3412-2015))
-(def cipher-2015 (e/new-encryption-cipher secret-key :cfb-mode))
+(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode))
 ;; extract IV
 (.getIV cipher-2015)                                             ;; => [B
 ;;[105, 13, 115, 71, 2, -23, 6, 82, -30, -13, 113, -12, -34, 69, -6, 27]
 
 ;; Init cipher for GOST28147,  generate random IV automatically
-(def secret-key-89 (e/generate-secret-key e/gost28147))
 (def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode))
 ;; extract IV
 (.getIV cipher-89) ;; => [-84, -116, -60, -99, 89, 43, -107, 127]
+
+
+;; Init cipher for GOST3412-2015,  with AlgoParamsSpec
+(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode 
+                   (javax.crypto.spec.IvParameterSpec. (e/new-iv-16))))
+
+;; Init cipher for GOST28147,  with AlgoParamsSpec
+(def cipher-89 (e/new-encryption-cipher secret-key-89 :cfb-mode
+                 (e/init-gost-named-params (e/algo-name secret-key-89) (e/new-iv-8) "E-A")))
 ----
 
 
