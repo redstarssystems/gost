@@ -95,6 +95,15 @@
    11 10 15 5 0 12 14 8 6 2 3 9 1 7 13 4])
 
 
+(def allowed-cipher-modes-map
+  {:cfb-mode 0
+   :ctr-mode 1
+   :cbc-mode 2})
+
+
+(def allowed-cipher-modes-set (into #{} (keys allowed-cipher-modes-map)))
+
+
 (defn- check-algo-name
   [^String algo-name]
   (when (not (allowed-algo-names-set algo-name))
@@ -116,13 +125,6 @@
   (count (into #{} b-array)))
 
 
-(def allowed-cipher-modes-map
-  {:cfb-mode 0
-   :ctr-mode 1
-   :cbc-mode 2})
-
-
-(def allowed-cipher-modes-set (into #{} (keys allowed-cipher-modes-map)))
 
 
 ;;;;;;;;;;
