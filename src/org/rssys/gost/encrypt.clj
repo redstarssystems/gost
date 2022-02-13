@@ -300,6 +300,7 @@
 (defn encrypt-bytes
   "Encrypt plain data using given initialized ^Cipher in encryption mode.
    Returns encrypted bytes array."
+  ^bytes
   [^Cipher cipher ^bytes plain-bytes]
   (.doFinal cipher plain-bytes))
 
@@ -307,6 +308,7 @@
 (defn decrypt-bytes
   "Decrypt data using given initialized ^Cipher in decryption mode.
   Returns plain data bytes array."
+  ^bytes
   [^Cipher cipher ^bytes encrypted-bytes]
   (.doFinal cipher encrypted-bytes))
 

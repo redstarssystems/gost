@@ -809,6 +809,84 @@
 
 (deftest ^:unit unprotect-file-test
 
+  (testing "Protected manually file can open by unprotect functions"
+    (let [secret-key-2015              (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
+          secret-key-89                (sut/byte-array->secret-key test-secret-key sut/gost28147)
+          cipher-2015                  (sut/new-encryption-cipher secret-key-2015 :cfb-mode)
+          iv-16                        ^bytes (.getIV cipher-2015)
+          cipher-89                    (sut/new-encryption-cipher secret-key-89 :cfb-mode)
+          iv-8                         ^bytes (.getIV cipher-89)
+
+          ;; compress plain data
+          plain                        (.getBytes plain-50)
+          compressed-bytes             (sut/compress-bytes plain)
+
+          ;; Encrypt plain data + calculate Mac
+          encrypted-bytes-2015         (sut/encrypt-bytes cipher-2015 compressed-bytes)
+          mac-2015                     (sut/mac-stream secret-key-2015 plain)
+          baos-2015                    (ByteArrayOutputStream.)
+
+          ;; Write [ IV(16), encrypted(Mac 16), encrypted(compressed(plain)) ]
+          _                            (.write baos-2015 iv-16)
+          _                            (.write baos-2015 (sut/encrypt-bytes cipher-2015 mac-2015))
+          _                            (.write baos-2015 encrypted-bytes-2015)
+          encrypted-result-2015        (.toByteArray baos-2015)
+
+          ;; Encrypt plain data + calculate Mac
+          encrypted-bytes-89           (sut/encrypt-bytes cipher-89 compressed-bytes)
+          mac-89                       (sut/mac-stream secret-key-89 plain)
+          baos-89                      (ByteArrayOutputStream.)
+
+          ;; Write [ IV(8), encrypted(Mac 4), encrypted(compressed(plain)) ]
+          _                            (.write baos-89 iv-8)
+          _                            (.write baos-89 (sut/encrypt-bytes cipher-89 mac-89))
+          _                            (.write baos-89 encrypted-bytes-89)
+          encrypted-result-89          (.toByteArray baos-89)
+
+          ;; create empty temporary file for encrypted text
+          output-file-enc-2015         (File/createTempFile "filename" ".egz")
+          output-file-enc-89           (File/createTempFile "filename" ".egz")
+          _                            (.deleteOnExit output-file-enc-2015)
+          _                            (.deleteOnExit output-file-enc-89)
+
+          ;; create empty temporary file for decrypted text
+          output-file-txt-2015         (File/createTempFile "filename" ".txt")
+          output-file-txt-89           (File/createTempFile "filename" ".txt")
+          _                            (.deleteOnExit output-file-txt-2015)
+          _                            (.deleteOnExit output-file-txt-89)
+
+          ;; write encrypted manually result to a file
+          out-stream-2015              (io/output-stream output-file-enc-2015)
+          _                            (.write out-stream-2015 encrypted-result-2015)
+          _                            (.close out-stream-2015)
+
+          ;; write encrypted manually result to a file
+          out-stream-89                (io/output-stream output-file-enc-89)
+          _                            (.write out-stream-89 encrypted-result-89)
+          _                            (.close out-stream-89)
+
+          ;; main test procedure: we can open data to ensure that protect functions are really perform all steps
+          ;; that we made manually
+          unprotect-bytes-result-2015  (sut/unprotect-bytes secret-key-2015 encrypted-result-2015)
+          unprotect-bytes-result-89    (sut/unprotect-bytes secret-key-89 encrypted-result-89)
+
+          unprotect-stream-result-2015 (sut/unprotect-file secret-key-2015 output-file-enc-2015 output-file-txt-2015)
+          unprotect-stream-result-89   (sut/unprotect-file secret-key-89 output-file-enc-89 output-file-txt-89)]
+
+      (match (String. unprotect-bytes-result-2015) plain-50)
+      (match (String. unprotect-bytes-result-89) plain-50)
+
+      (match (slurp output-file-txt-2015) plain-50)
+      (match (slurp output-file-txt-89) plain-50)
+
+      (match unprotect-stream-result-2015 output-file-txt-2015)
+      (match unprotect-stream-result-89 output-file-txt-89)
+
+      (.delete (io/file output-file-enc-2015))
+      (.delete (io/file output-file-enc-89))
+      (.delete (io/file output-file-txt-2015))
+      (.delete (io/file output-file-txt-89))))
+
   (testing "Protect/unprotect-file unsuccessful for corrupted data"
     (let [input-filename           "test/data/big.txt"
           secret-key-2015          (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
