@@ -54,6 +54,7 @@
   As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
   coerced to BufferedInputStream and auto closed after.
   Returns byte array with calculated digest."
+  ^bytes
   [input & {:keys [close-streams? digest-class] :or
             {close-streams? true
              digest-class   (:3411-2012-256 digest-classes-map)}}]
@@ -105,6 +106,7 @@
   "Calculate HMAC for input stream using `secret-key`.
   As input may be: File, URI, URL, Socket, byte array, or filename as String which will be
   coerced to BufferedInputStream."
+  ^bytes
   [input ^bytes secret-key & {:keys [close-streams? digest-class] :or
                               {close-streams? true
                                digest-class   (:3411-2012-256 digest-classes-map)}}]
