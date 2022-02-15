@@ -3,7 +3,8 @@
     [clojure.test :as test :refer [deftest is testing]]
     [matcho.core :refer [match]]
     [org.rssys.gost.common :as common]
-    [org.rssys.gost.digest :as sut]))
+    [org.rssys.gost.digest :as sut])
+  (:import (org.bouncycastle.crypto.digests GOST3411_2012_512Digest GOST3411_2012_256Digest)))
 
 
 ;; Test S-box from GOST standard. Should NEVER be used in production!!!
@@ -42,7 +43,7 @@
 
   ;; See https://ru.wikipedia.org/wiki/ГОСТ_Р_34.11-94
   (testing "GOST3411-94 engine with default CryptoPro S-box params produces correct digest value"
-    (let [engine (:3411-94 sut/digest-classes-map)
+    (let [engine (sut/-gost-3411)
           r1     (sut/digest-stream (.getBytes m1) :digest-class engine)
           r2     (sut/digest-3411-94 (.getBytes m2))
           r3     (sut/digest-stream (.getBytes m3) :digest-class engine)
@@ -55,7 +56,7 @@
   ;; See digests 3411-2012-256  https://en.wikipedia.org/wiki/Streebog
   ;; also http://www.netlab.linkpc.net/download/software/SDK/core/include/gost3411-2012.h
   (testing "GOST3411-2012-256 engine produces correct digest value"
-    (let [engine (:3411-2012-256 sut/digest-classes-map)
+    (let [engine (GOST3411_2012_256Digest.)
           r1     (sut/digest-stream (.getBytes m1) :digest-class engine)
           r2     (sut/digest-2012-256 (.getBytes m2))
           r3     (sut/digest-stream (.getBytes m3) :digest-class engine)
@@ -68,7 +69,7 @@
   ;; See digests 3411-2012-256  https://en.wikipedia.org/wiki/Streebog
   ;; also http://www.netlab.linkpc.net/download/software/SDK/core/include/gost3411-2012.h
   (testing "GOST3411-2012-512 engine produces correct digest value"
-    (let [engine (:3411-2012-512 sut/digest-classes-map)
+    (let [engine (GOST3411_2012_512Digest.)
           r1     (sut/digest-stream (.getBytes m1) :digest-class engine)
           r2     (sut/digest-2012-512 (.getBytes m2))
           r3     (sut/digest-stream (.getBytes m3) :digest-class engine)

@@ -42,11 +42,6 @@
     (GOST3411Digest. s-box)))
 
 
-(def digest-classes-map
-  {:3411-94       (-gost-3411)
-   :3411-2012-256 (GOST3411_2012_256Digest.)
-   :3411-2012-512 (GOST3411_2012_512Digest.)})
-
 
 (defn digest-stream
   "Calculate digest for input stream.
@@ -57,7 +52,7 @@
   ^bytes
   [input & {:keys [close-streams? digest-class] :or
             {close-streams? true
-             digest-class   (:3411-2012-256 digest-classes-map)}}]
+             digest-class   (GOST3411_2012_256Digest.)}}]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (instance? Digest digest-class) "Got wrong Digest class. Should be instance of ^Digest.")
   (assert (string/includes? (.getAlgorithmName digest-class) "GOST") "Should be instance of GOST digest class.")
@@ -79,7 +74,7 @@
   Returns 256 bit byte array."
   ^bytes
   [input & {:keys [close-streams?] :or {close-streams? true}}]
-  (digest-stream input :digest-class (:3411-94 digest-classes-map) :close-streams? close-streams?))
+  (digest-stream input :digest-class (-gost-3411) :close-streams? close-streams?))
 
 
 (defn digest-2012-256
@@ -89,7 +84,7 @@
   Returns 256 bit byte array."
   ^bytes
   [input & {:keys [close-streams?] :or {close-streams? true}}]
-  (digest-stream input :digest-class (:3411-2012-256 digest-classes-map) :close-streams? close-streams?))
+  (digest-stream input :digest-class (GOST3411_2012_256Digest.) :close-streams? close-streams?))
 
 
 (defn digest-2012-512
@@ -99,7 +94,7 @@
   Returns 512 bit byte array."
   ^bytes
   [input & {:keys [close-streams?] :or {close-streams? true}}]
-  (digest-stream input :digest-class (:3411-2012-512 digest-classes-map) :close-streams? close-streams?))
+  (digest-stream input :digest-class (GOST3411_2012_512Digest.) :close-streams? close-streams?))
 
 
 (defn hmac-stream
@@ -109,7 +104,7 @@
   ^bytes
   [input ^bytes secret-key & {:keys [close-streams? digest-class] :or
                               {close-streams? true
-                               digest-class   (:3411-2012-256 digest-classes-map)}}]
+                               digest-class   (GOST3411_2012_256Digest.)}}]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (instance? Digest digest-class) "Got wrong Digest class. Should be instance of ^Digest.")
   (assert (string/includes? (.getAlgorithmName digest-class) "GOST") "Should be instance of GOST digest class.")
@@ -136,7 +131,7 @@
   Returns 256 bit byte array."
   ^bytes
   [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
-  (hmac-stream input secret-key :digest-class (:3411-94 digest-classes-map) :close-streams? close-streams?))
+  (hmac-stream input secret-key :digest-class (-gost-3411) :close-streams? close-streams?))
 
 
 (defn hmac-2012-256
@@ -146,7 +141,7 @@
   Returns 256 bit byte array."
   ^bytes
   [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
-  (hmac-stream input secret-key :digest-class (:3411-2012-256 digest-classes-map) :close-streams? close-streams?))
+  (hmac-stream input secret-key :digest-class (GOST3411_2012_256Digest.) :close-streams? close-streams?))
 
 
 (defn hmac-2012-512
@@ -156,5 +151,5 @@
   Returns 512 bit byte array."
   ^bytes
   [input ^bytes secret-key & {:keys [close-streams?] :or {close-streams? true}}]
-  (hmac-stream input secret-key :digest-class (:3411-2012-512 digest-classes-map) :close-streams? close-streams?))
+  (hmac-stream input secret-key :digest-class (GOST3411_2012_512Digest.) :close-streams? close-streams?))
 
