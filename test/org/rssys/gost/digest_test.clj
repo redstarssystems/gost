@@ -4,7 +4,10 @@
     [matcho.core :refer [match]]
     [org.rssys.gost.common :as common]
     [org.rssys.gost.digest :as sut])
-  (:import (org.bouncycastle.crypto.digests GOST3411_2012_512Digest GOST3411_2012_256Digest)))
+  (:import
+    (org.bouncycastle.crypto.digests
+      GOST3411_2012_256Digest
+      GOST3411_2012_512Digest)))
 
 
 ;; Test S-box from GOST standard. Should NEVER be used in production!!!
