@@ -100,10 +100,18 @@
                         (shell "clj-kondo --parallel --lint src:test:dev/src")
                         (shell "cljstyle check"))}
 
+  check-code   {:doc  "Check source code for git publishing"
+                :task (do
+                        (shell "clojure-lsp clean-ns")
+                        (shell "bb format")
+                        (shell "bb lint")
+                        (shell "bb test"))}
+
   requirements {:doc  "Install project requirements"
                 :task (let [os-name (clojure.string/lower-case (System/getProperty "os.name"))]
                         (case os-name
                           "mac os x" (do
+                                       (shell "brew upgrade clojure-lsp/brew/clojure-lsp-native")
                                        (shell "brew install --cask cljstyle")
                                        (shell "brew install borkdude/brew/clj-kondo")
                                        (shell (str "xattr -r -d com.apple.quarantine " (exec "which cljstyle"))))
