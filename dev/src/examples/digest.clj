@@ -49,23 +49,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; generate secret key from password
+;; generate secret key bytes from password
 (def secret-key (e/generate-secret-bytes-from-password "12345678"))
 
 
-;; Generate HMAC using GOST3411-94 and secret-key
+;; Generate HMAC using GOST3411-94 and secret-key bytes
 (def h1 (d/hmac-3411-94 (.getBytes message) secret-key))
 
 (common/bytes-to-hex h1)                                    ;; =>
 ;; "1ffb045ab775c674b5809d6f5c180c73be459223e93951e8c19cc1e0ed559b20"
 
-;; Generate HMAC using GOST3411-2012-256 and secret-key
+;; Generate HMAC using GOST3411-2012-256 and secret-key bytes
 (def h2 (d/hmac-2012-256 (.getBytes message) secret-key))
 
 (common/bytes-to-hex h2)                                    ;; =>
 ;; "405854baba2cc90661f1ff08e40c2cd0fb36869a5a32f655f51ea6fd577c6d84"
 
-;; Generate HMAC using GOST3411-2012-512 and secret-key
+;; Generate HMAC using GOST3411-2012-512 and secret-key bytes
 (def h3 (d/hmac-2012-512 (.getBytes message) secret-key))
 
 (common/bytes-to-hex h3)                                    ;; =>
