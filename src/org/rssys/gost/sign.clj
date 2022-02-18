@@ -62,8 +62,7 @@
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 32 (alength digest-bytes)) "Digest should be 32 bytes length")
-  (assert (= 256 (-key-length private-key))
-    "Private key should be 256 bit length")
+  (assert (= 256 (-key-length private-key)) "Private key should be 256 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-256")]
     (.initSign sign-engine private-key (SecureRandom.))
     (.update sign-engine digest-bytes 0 (alength digest-bytes))
@@ -78,8 +77,7 @@
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 64 (alength digest-bytes)) "Digest should be 64 bytes length")
-  (assert (= 512 (-key-length private-key))
-    "Private key should be 512 bit length")
+  (assert (= 512 (-key-length private-key)) "Private key should be 512 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-512")]
     (.initSign sign-engine private-key (SecureRandom.))
     (.update sign-engine digest-bytes 0 (alength digest-bytes))
@@ -93,8 +91,8 @@
   coerced to BufferedInputStream.
   Returns 64 byte array with signature."
   [^BCECGOST3410_2012PrivateKey private-key input & {:keys [close-streams?] :or {close-streams? true}}]
-  (let [in          (io/input-stream input)
-        digest      (d/digest-2012-256 in :close-streams? close-streams?)]
+  (let [in     (io/input-stream input)
+        digest (d/digest-2012-256 in :close-streams? close-streams?)]
     (when close-streams? (.close in))
     (sign-digest-256 private-key digest)))
 
@@ -106,8 +104,8 @@
   coerced to BufferedInputStream.
   Returns 128 byte array with signature."
   [^BCECGOST3410_2012PrivateKey private-key input & {:keys [close-streams?] :or {close-streams? true}}]
-  (let [in          (io/input-stream input)
-        digest      (d/digest-2012-512 in :close-streams? close-streams?)]
+  (let [in     (io/input-stream input)
+        digest (d/digest-2012-512 in :close-streams? close-streams?)]
     (when close-streams? (.close in))
     (sign-digest-512 private-key digest)))
 
@@ -147,8 +145,8 @@
   coerced to BufferedInputStream.
   Returns true if signature is correct, false - signature is not correct."
   [^BCECGOST3410_2012PublicKey public-key input signature & {:keys [close-streams?] :or {close-streams? true}}]
-  (let [in          (io/input-stream input)
-        digest      (d/digest-2012-256 in :close-streams? close-streams?)]
+  (let [in     (io/input-stream input)
+        digest (d/digest-2012-256 in :close-streams? close-streams?)]
     (when close-streams? (.close in))
     (verify-digest-256 public-key digest signature)))
 
@@ -160,8 +158,8 @@
   coerced to BufferedInputStream.
   Returns true if signature is correct, false - signature is not correct."
   [^BCECGOST3410_2012PublicKey public-key input signature & {:keys [close-streams?] :or {close-streams? true}}]
-  (let [in          (io/input-stream input)
-        digest      (d/digest-2012-512 in :close-streams? close-streams?)]
+  (let [in     (io/input-stream input)
+        digest (d/digest-2012-512 in :close-streams? close-streams?)]
     (when close-streams? (.close in))
     (verify-digest-512 public-key digest signature)))
 
