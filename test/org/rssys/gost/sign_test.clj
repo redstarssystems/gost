@@ -14,15 +14,16 @@
 
 
 (deftest ^:unit gen-keypair-256-test
-  (testing "GOST 3410-2012 keypair 255-bit length generated successfully"
+  (testing "GOST 3410-2012 keypair 256-bit length generated successfully"
     (let [kp          (sut/gen-keypair-256)
           public-key  (.getPublic kp)
           private-key (.getPrivate kp)
-          algo-name   (.getAlgorithm public-key)]
+          algo-name   (.getAlgorithm public-key)
+          key-length (.getFieldSize (.getYCoord (.getG (.getParameters private-key))))]
       (is (instance? BCECGOST3410_2012PublicKey public-key))
       (is (instance? BCECGOST3410_2012PrivateKey private-key))
       (match algo-name "ECGOST3410-2012")
-      (match (.bitLength (.getN (.getParameters ^BCECGOST3410_2012PrivateKey private-key))) 255))))
+      (match key-length 256))))
 
 
 (deftest ^:unit gen-keypair-512-test
@@ -30,11 +31,12 @@
     (let [kp          (sut/gen-keypair-512)
           public-key  (.getPublic kp)
           private-key (.getPrivate kp)
-          algo-name   (.getAlgorithm public-key)]
+          algo-name   (.getAlgorithm public-key)
+          key-length (.getFieldSize (.getYCoord (.getG (.getParameters private-key))))]
       (is (instance? BCECGOST3410_2012PublicKey public-key))
       (is (instance? BCECGOST3410_2012PrivateKey private-key))
       (match algo-name "ECGOST3410-2012")
-      (match (.bitLength (.getN (.getParameters ^BCECGOST3410_2012PrivateKey private-key))) 512))))
+      (match key-length 512))))
 
 
 (deftest ^:unit sign-digest-256-test
@@ -50,7 +52,7 @@
     (let [kp          (sut/gen-keypair-512)
           private-key (.getPrivate kp)
           digest      (byte-array 32)]
-      (is (thrown-with-msg? Error #"Private key should be 255 bit length"
+      (is (thrown-with-msg? Error #"Private key should be 256 bit length"
             (sut/sign-digest-256 private-key digest)))))
 
   (testing "Signature correct size"
@@ -119,7 +121,7 @@
           public-key (.getPublic kp)
           digest     (byte-array 32)
           signature  (byte-array 64)]
-      (is (thrown-with-msg? Error #"Public key should be 255 bit length"
+      (is (thrown-with-msg? Error #"Public key should be 256 bit length"
             (sut/verify-digest-256 public-key digest signature))))))
 
 

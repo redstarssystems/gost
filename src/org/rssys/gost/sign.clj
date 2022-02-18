@@ -49,15 +49,15 @@
 
 
 (defn sign-digest-256
-  "Generate signature for a digest 32 bytes length using a private key 255-bit length.
+  "Generate signature for a digest 32 bytes length using a private key 256-bit length.
   Signature algorithm is GOST3410-2012.
   Returns byte array 64 bytes length."
   ^bytes
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 32 (alength digest-bytes)) "Digest should be 32 bytes length")
-  (assert (= 255 (.bitLength (.getN (.getParameters private-key))))
-    "Private key should be 255 bit length")
+  (assert (= 256 (.getFieldSize (.getYCoord (.getG (.getParameters private-key)))))
+    "Private key should be 256 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-256")]
     (.initSign sign-engine private-key (SecureRandom.))
     (.update sign-engine digest-bytes 0 (alength digest-bytes))
@@ -72,7 +72,7 @@
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 64 (alength digest-bytes)) "Digest should be 64 bytes length")
-  (assert (= 512 (.bitLength (.getN (.getParameters private-key))))
+  (assert (= 512 (.getFieldSize (.getYCoord (.getG (.getParameters private-key)))))
     "Private key should be 512 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-512")]
     (.initSign sign-engine private-key (SecureRandom.))
@@ -81,7 +81,7 @@
 
 
 (defn sign-256
-  "Generate signature GOST3411-2012-256 for `input` using private key 255 bit length.
+  "Generate signature GOST3411-2012-256 for `input` using private key 256 bit length.
   Digest GOST3411-2012-256 will be calculated automatically for `input`.
   As `input` may be: File, URI, URL, Socket, byte array, or filename as String which will be
   coerced to BufferedInputStream.
@@ -107,14 +107,14 @@
 
 
 (defn verify-digest-256
-  "Verify signature for digest 32 bytes length using public key 255 bit length.
+  "Verify signature for digest 32 bytes length using public key 256 bit length.
   Signature algorithm is GOST3410-2012.
   Returns true if signature is correct, false - signature is not correct."
   [^BCECGOST3410_2012PublicKey public-key ^bytes digest-bytes ^bytes signature]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 32 (alength digest-bytes)) "Digest should be 32 bytes length")
-  (assert (= 255 (.bitLength (.getN (.getParameters public-key))))
-    "Public key should be 255 bit length")
+  (assert (= 256 (.getFieldSize (.getYCoord (.getG (.getParameters public-key)))))
+    "Public key should be 256 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-256")]
     (.initVerify sign-engine public-key)
     (.update sign-engine digest-bytes 0 (alength digest-bytes))
@@ -128,7 +128,7 @@
   [^BCECGOST3410_2012PublicKey public-key ^bytes digest-bytes ^bytes signature]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 64 (alength digest-bytes)) "Digest should be 64 bytes length")
-  (assert (= 512 (.bitLength (.getN (.getParameters public-key))))
+  (assert (= 512 (.getFieldSize (.getYCoord (.getG (.getParameters public-key)))))
     "Public key should be 512 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-512")]
     (.initVerify sign-engine public-key)
@@ -137,7 +137,7 @@
 
 
 (defn verify-256
-  "Verify signature GOST3411-2012-256 for `input` using public key 255 bit length.
+  "Verify signature GOST3411-2012-256 for `input` using public key 256 bit length.
   Digest GOST3411-2012-256 will be calculated automatically for `input`.
   As `input` may be: File, URI, URL, Socket, byte array, or filename as String which will be
   coerced to BufferedInputStream.
