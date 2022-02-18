@@ -21,6 +21,12 @@
       ECNamedCurveParameterSpec)))
 
 
+;; helper to detect private or public key length
+(defn -key-length
+  [k]
+  (.getFieldSize (.getYCoord (.getG (.getParameters k)))))
+
+
 (defn gen-keypair-256
   "Generate 256-bit keypair for GOST3410-2012.
   Elliptic curve parameters is Tc26-Gost-3410-12-256-paramSetA.
@@ -56,7 +62,7 @@
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 32 (alength digest-bytes)) "Digest should be 32 bytes length")
-  (assert (= 256 (.getFieldSize (.getYCoord (.getG (.getParameters private-key)))))
+  (assert (= 256 (-key-length private-key))
     "Private key should be 256 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-256")]
     (.initSign sign-engine private-key (SecureRandom.))
@@ -72,7 +78,7 @@
   [^BCECGOST3410_2012PrivateKey private-key ^bytes digest-bytes]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 64 (alength digest-bytes)) "Digest should be 64 bytes length")
-  (assert (= 512 (.getFieldSize (.getYCoord (.getG (.getParameters private-key)))))
+  (assert (= 512 (-key-length private-key))
     "Private key should be 512 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-512")]
     (.initSign sign-engine private-key (SecureRandom.))
@@ -113,8 +119,7 @@
   [^BCECGOST3410_2012PublicKey public-key ^bytes digest-bytes ^bytes signature]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 32 (alength digest-bytes)) "Digest should be 32 bytes length")
-  (assert (= 256 (.getFieldSize (.getYCoord (.getG (.getParameters public-key)))))
-    "Public key should be 256 bit length")
+  (assert (= 256 (-key-length public-key)) "Public key should be 256 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-256")]
     (.initVerify sign-engine public-key)
     (.update sign-engine digest-bytes 0 (alength digest-bytes))
@@ -128,8 +133,7 @@
   [^BCECGOST3410_2012PublicKey public-key ^bytes digest-bytes ^bytes signature]
   (Security/addProvider (BouncyCastleProvider.))
   (assert (= 64 (alength digest-bytes)) "Digest should be 64 bytes length")
-  (assert (= 512 (.getFieldSize (.getYCoord (.getG (.getParameters public-key)))))
-    "Public key should be 512 bit length")
+  (assert (= 512 (-key-length public-key)) "Public key should be 512 bit length")
   (let [sign-engine (Signature/getInstance "ECGOST3410-2012-512")]
     (.initVerify sign-engine public-key)
     (.update sign-engine digest-bytes 0 (alength digest-bytes))

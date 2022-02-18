@@ -19,7 +19,7 @@
           public-key  (.getPublic kp)
           private-key (.getPrivate kp)
           algo-name   (.getAlgorithm public-key)
-          key-length (.getFieldSize (.getYCoord (.getG (.getParameters private-key))))]
+          key-length  (sut/-key-length private-key)]
       (is (instance? BCECGOST3410_2012PublicKey public-key))
       (is (instance? BCECGOST3410_2012PrivateKey private-key))
       (match algo-name "ECGOST3410-2012")
@@ -32,7 +32,7 @@
           public-key  (.getPublic kp)
           private-key (.getPrivate kp)
           algo-name   (.getAlgorithm public-key)
-          key-length (.getFieldSize (.getYCoord (.getG (.getParameters private-key))))]
+          key-length  (sut/-key-length private-key)]
       (is (instance? BCECGOST3410_2012PublicKey public-key))
       (is (instance? BCECGOST3410_2012PrivateKey private-key))
       (match algo-name "ECGOST3410-2012")
