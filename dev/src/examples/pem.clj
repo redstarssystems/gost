@@ -28,6 +28,10 @@
 (= restored-private-256 private-key-256)
 
 
+;; Also, you can use command to read PEM private key.
+;;openssl pkey -in private-key.pem -noout -text
+
+
 ;; Convert PEM string to a PublicKey
 (def restored-public-256 (p/pem->public-key public-pem-256))
 
