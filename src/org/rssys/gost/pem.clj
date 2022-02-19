@@ -20,7 +20,7 @@
 
 
 (defn private-key->pem
-  "Convert ECGOST3410-2012 private key to PEM private key string.
+  "Convert ECGOST3410-2012 private key to PEM (PKCS#8) string.
   Private key is unencrypted!"
   ^String
   [^PrivateKey private-key]
@@ -43,7 +43,7 @@
 
 
 (defn pem->private-key
-  "Convert PEM private key string to a private key ECGOST3410-2012.
+  "Convert PEM (PKCS#8) string to a private key ECGOST3410-2012.
   PEM private key is unencrypted!"
   ^PrivateKey
   [^String pem-key]
