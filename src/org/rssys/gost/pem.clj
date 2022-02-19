@@ -1,5 +1,5 @@
 (ns org.rssys.gost.pem
-  "Utility functions to import/export keys to PEM format"
+  "Utility functions to import/export keys and other stuff to PEM format"
   (:import
     (java.io
       StringReader

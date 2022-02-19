@@ -216,6 +216,8 @@ This is high-level functions.
 [source,clojure]
 .hmac.clj
 ----
+(require '[org.rssys.gost.digest :as d])
+(require '[org.rssys.gost.encrypt :as e])
 
 (def message "The quick brown fox jumps over the lazy dog")
 
@@ -254,6 +256,8 @@ This is high-level functions.
 [source,clojure]
 .sign.clj
 ----
+(require '[org.rssys.gost.sign :as s])
+
 (def message "This is a message.")
 
 ;; Generate public and private keypair 256 bit length
@@ -297,6 +301,9 @@ This is high-level functions.
 [source,clojure]
 .pem.clj
 ----
+(require '[org.rssys.gost.sign :as s])
+(require '[org.rssys.gost.pem :as p])
+
 ;; Generate public and private keypair 256 bit length
 (def kp-256 (s/gen-keypair-256))
 
