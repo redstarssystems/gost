@@ -5,11 +5,8 @@
       StringReader
       StringWriter)
     (java.security
-      KeyFactory
       PrivateKey
       PublicKey)
-    (java.security.spec
-      PKCS8EncodedKeySpec)
     (org.bouncycastle.asn1.pkcs
       PrivateKeyInfo)
     (org.bouncycastle.openssl
@@ -49,9 +46,8 @@
   [^String pem-key]
   (let [pem-parser  (PEMParser. (StringReader. pem-key))
         pem-keypair ^PrivateKeyInfo (.readObject pem-parser)
-        ek          (PKCS8EncodedKeySpec. (.getEncoded pem-keypair))
-        kf          (KeyFactory/getInstance "ECGOST3410-2012" "BC")]
-    (.generatePrivate kf ek)))
+        converter (doto (JcaPEMKeyConverter.) (.setProvider "BC"))]
+    (.getPrivateKey converter pem-keypair)))
 
 
 (defn pem->public-key

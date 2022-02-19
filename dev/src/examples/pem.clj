@@ -28,19 +28,20 @@
 (= restored-private-256 private-key-256)
 
 
-;; Also, you can use command to read PEM private key.
-;;openssl pkey -in private-key.pem -noout -text
-
-;; Also, you can use command to read PEM public key.
-;;openssl pkey -pubin -in public-key.pem -text
-
-
 ;; Convert PEM string to a PublicKey
 (def restored-public-256 (p/pem->public-key public-pem-256))
 
 
 ;; check that keys are equal
 (= restored-public-256 public-key-256)
+
+
+
+;; Also, you can use command to read PEM private key.
+;;openssl pkey -in private-key.pem -noout -text
+
+;; Also, you can use command to read PEM public key.
+;;openssl pkey -pubin -in public-key.pem -text
 
 
 ;; Generate public and private keypair 512 bit length

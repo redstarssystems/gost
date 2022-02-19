@@ -13,13 +13,13 @@
 
 (deftest ^:unit private-key->pem-test
 
-  (let [kp-256                   (s/gen-keypair-256)
-        private-key-256          (.getPrivate kp-256)
-        public-key-256           (.getPublic kp-256)
-        private-pem-256          (p/private-key->pem private-key-256)
-        public-pem-256           (p/public-key->pem public-key-256)
-        restored-private-256     (p/pem->private-key private-pem-256)
-        restored-public-256      (p/pem->public-key public-pem-256)]
+  (let [kp-256               (s/gen-keypair-256)
+        private-key-256      (.getPrivate kp-256)
+        public-key-256       (.getPublic kp-256)
+        private-pem-256      (p/private-key->pem private-key-256)
+        public-pem-256       (p/public-key->pem public-key-256)
+        restored-private-256 (p/pem->private-key private-pem-256)
+        restored-public-256  (p/pem->public-key public-pem-256)]
 
     (testing "Convert PrivateKey to PEM string is successful"
       (is (string/includes? private-pem-256 "PRIVATE")))
@@ -33,4 +33,11 @@
 
     (testing "Convert  PEM string to a PublicKey is successful"
       (is (= restored-public-256 public-key-256))
-      (is (instance? BCECGOST3410_2012PublicKey restored-public-256)))))
+      (is (instance? BCECGOST3410_2012PublicKey restored-public-256))))
+
+  (testing "Restored keys from PEM can sign/verify data"
+    (let [private-key (p/pem->private-key (slurp "test/data/test-private-key.pem"))
+          public-key  (p/pem->public-key (slurp "test/data/test-public-key.pem"))
+          signature   (s/sign-512 private-key "test/data/big.txt")
+          result      (s/verify-512 public-key "test/data/big.txt" signature)]
+      (is result "Signature is correct"))))
