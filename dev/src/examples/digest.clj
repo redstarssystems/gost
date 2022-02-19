@@ -35,6 +35,10 @@
 (common/bytes-to-hex d4)                                    ;; =>
 ;; "ee363d5e40c1ff1965ee308beef1ca153c1d56d377a63be29924731732f2c697"
 
+(common/bytes-to-hex (d/digest-2012-256 "test/data/big.txt")) ;;=> "a22189fd09dea6c60138b821dd48c42a9b33910faf70413dc76f374a29574b19"
+;; openssl dgst -streebog256 test/data/big.txt
+;;streebog256(test/data/big.txt)= a22189fd09dea6c60138b821dd48c42a9b33910faf70413dc76f374a29574b19
+
 ;; To generate GOST3411-2012-512 digest from byte array use `digest-2012-512` function
 (def d5 (d/digest-2012-512 (.getBytes message)))
 
