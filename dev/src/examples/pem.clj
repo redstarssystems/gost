@@ -104,3 +104,22 @@
 
 ;; You can read from PEM arbitrary byte array
 (String. (p/read-bytes-from-pem "-----BEGIN MESSAGE-----\nSGVsbG8=\n-----END MESSAGE-----\n"))
+
+(def message "Hello, world!")
+(def input (.getBytes message))
+
+
+;; Sign message
+(def signature (s/sign-256 private-key-256 input))
+
+
+;; Create detached signature as PEM string
+(def signature-pem (p/write-bytes-to-pem "SIGNATURE" signature))
+
+
+;; Restore signature from PEM string
+(def restored-signature (p/read-bytes-from-pem signature-pem))
+
+
+;; Verify restored signature
+(s/verify-256 public-key-256 input restored-signature)
