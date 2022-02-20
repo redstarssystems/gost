@@ -19,10 +19,8 @@ The library provides:
 - key generation: secret keys, public/private keys, password based keys;
 - compression + encryption + mac / decryption + check mac + decompression
 - encrypting with EC public keys / decrypting with EC private keys
-- save / load keys (private, public) to PEM (PKCS8) format.
+- save/load keys (secret, private, public) to PEM format.
 
-
-This library is successor of https://github.com/middlesphere/crypto-gost[crypto-gost].
 
 == Usage
 
