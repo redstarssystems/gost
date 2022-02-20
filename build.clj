@@ -6,7 +6,7 @@
 
 
 (def artifact 'org.rssys/gost)
-(def version "0.1.0-SNAPSHOT")
+(def version "0.1.0")
 
 
 ;; (format "1.0.%s" (System/getenv "git-rev-count"))
