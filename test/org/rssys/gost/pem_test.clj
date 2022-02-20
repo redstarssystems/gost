@@ -41,3 +41,20 @@
           signature   (s/sign-512 private-key "test/data/big.txt")
           result      (s/verify-512 public-key "test/data/big.txt" signature)]
       (is result "Signature is correct"))))
+
+
+(deftest ^:unit private-key->encrypted-pem-test
+  (testing "Convert private key to encrypted PEM is successful"
+    (let [password    "123456"
+          private-key (p/pem->private-key (slurp "test/data/test-private-key.pem"))
+          pem-string (p/private-key->encrypted-pem private-key password)]
+      (is (string/includes? pem-string "ENCRYPTED PRIVATE")))))
+
+
+(deftest ^:unit encrypted-pem->private-key-test
+
+  (testing "Open encrypted PEM file with private key is successful"
+    (let [input-file  "test/data/test-encrypted-private-key.pem"
+          password    "123456"
+          private-key (p/encrypted-pem->private-key (slurp input-file) password)]
+      (is (instance? BCECGOST3410_2012PrivateKey private-key)))))

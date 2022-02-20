@@ -35,7 +35,23 @@
 ;; check that keys are equal
 (= restored-public-256 public-key-256)
 
+;; To save private key to encrypted PEM (PKCS8) string use:
+(p/private-key->encrypted-pem private-key-256 "123456")     ;;=>
+;; "-----BEGIN ENCRYPTED PRIVATE KEY-----
+;;MIGpMFUGCSqGSIb3DQEFDTBIMCcGCSqGSIb3DQEFDDAaBBSMtRpFQ6n7RgZTriGG
+;;bFr8JJeKiQICBAAwHQYJYIZIAWUDBAEqBBB0XmFK1rvMBnC4t7BSGndLBFDiON0S
+;;e1iGKb80u/lLXti1+7x9QKCGZtVIJw62YIQWAxy7zK5vZ1xAQxSRNjssfi0niroL
+;;0ZqRJpFb6czeCFyq2HBzUvNH2rRdAiRv91KDgg==
+;;-----END ENCRYPTED PRIVATE KEY-----
+;;"
 
+;; To restore private key from encrypted PEM (PKCS8) string use:
+(p/encrypted-pem->private-key (slurp "test/data/test-encrypted-private-key.pem") "123456") ;;=>
+;;#object[org.bouncycastle.jcajce.provider.asymmetric.ecgost12.BCECGOST3410_2012PrivateKey 0x3776cb5 "ECGOST3410-2012
+;; Private Key [55:07:ef:03:d1:7f:ea:e7:53:ca:58:6d:0e:da:0a:6f:e2:93:4b:b4]
+;;            X: df0679d81ec2156f062b507918c10fb9e680848be92ec69af6be9f32ffd8669e
+;;            Y: 2234280a15135e723579ef96544742f6cc06f8d59cccd88fd4b377f818ce9f95
+;;"]
 
 ;; Also, you can use command to read PEM private key.
 ;;openssl pkey -in private-key.pem -noout -text
