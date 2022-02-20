@@ -1,5 +1,6 @@
 (ns examples.pem
   (:require
+    [org.rssys.gost.encrypt :as e]
     [org.rssys.gost.pem :as p]
     [org.rssys.gost.sign :as s]))
 
@@ -123,3 +124,34 @@
 
 ;; Verify restored signature
 (s/verify-256 public-key-256 input restored-signature)
+
+
+;; Generate secret key
+(def secret-key-2015 (e/generate-secret-key))
+
+
+;; PEM string with plain secret key
+;; Warning: PEM string will be not encrypted!
+(def pem-secret-key-2015 (p/secret-key->pem secret-key-2015))
+
+
+;; Restore secret key from plain PEM
+(def restored-secret-key-2015 (p/pem->secret-key pem-secret-key-2015))
+
+
+;; Check that keys are equal
+(= restored-secret-key-2015 secret-key-2015)
+
+
+;; Convert SecretKeySpec to encrypted PEM string
+;; Secret key will be encrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
+(def encrypted-pem-secret-key (p/secret-key->encrypted-pem secret-key-2015 "123456"))
+
+
+;; Restore secret key from plain PEM
+;; Secret key will be decrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
+(def restored-encrypted-secret-key-2015 (p/encrypted-pem->secret-key encrypted-pem-secret-key "123456"))
+
+
+;; Check that keys are equal
+(= restored-encrypted-secret-key-2015 secret-key-2015)

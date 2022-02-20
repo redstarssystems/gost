@@ -1,6 +1,7 @@
 (ns examples.encryption
   (:require
-    [org.rssys.gost.encrypt :as e])
+    [org.rssys.gost.encrypt :as e]
+    [org.rssys.gost.pem :as p])
   (:import
     (java.io
       ByteArrayOutputStream)))
@@ -329,3 +330,5 @@
 (e/decrypt-and-decompress-stream decryption-cipher-2015 "target/plain32.egz" "target/plain32.txt")
 
 (slurp "target/plain32.txt") ;; => "This text has length = 32 bytes."
+
+(p/write-bytes-to-pem "SECRET KEY" (.getEncoded secret-key-2015))

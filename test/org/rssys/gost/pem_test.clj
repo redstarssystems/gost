@@ -3,9 +3,12 @@
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]]
     [matcho.core :refer [match]]
+    [org.rssys.gost.encrypt :as e]
     [org.rssys.gost.pem :as p]
     [org.rssys.gost.sign :as s])
   (:import
+    (javax.crypto.spec
+      SecretKeySpec)
     (org.bouncycastle.jcajce.provider.asymmetric.ecgost12
       BCECGOST3410_2012PrivateKey
       BCECGOST3410_2012PublicKey)))
@@ -48,7 +51,7 @@
   (testing "Convert private key to encrypted PEM is successful"
     (let [password    "123456"
           private-key (p/pem->private-key (slurp "test/data/test-private-key.pem"))
-          pem-string (p/private-key->encrypted-pem private-key password)]
+          pem-string  (p/private-key->encrypted-pem private-key password)]
       (is (string/includes? pem-string "ENCRYPTED PRIVATE")))))
 
 
@@ -63,14 +66,48 @@
 
 (deftest ^:unit write-bytes-to-pem-test
   (testing "Converting byte array to PEM string is successful"
-    (let [data (.getBytes "Hello, world!")
-          data-type "PLAIN TEXT"
+    (let [data       (.getBytes "Hello, world!")
+          data-type  "PLAIN TEXT"
           pem-result (p/write-bytes-to-pem data-type data)]
       (is (string/includes? pem-result data-type)))))
 
 
 (deftest ^:unit read-bytes-from-pem-test
   (testing "Converting PEM string to byte array is successful"
-    (let [data       "-----BEGIN PLAIN TEXT-----\nSGVsbG8sIHdvcmxkIQ==\n-----END PLAIN TEXT-----"
+    (let [data   "-----BEGIN PLAIN TEXT-----\nSGVsbG8sIHdvcmxkIQ==\n-----END PLAIN TEXT-----"
           result (p/read-bytes-from-pem data)]
-      (match  (String. result) "Hello, world!"))))
+      (match (String. result) "Hello, world!"))))
+
+
+(deftest ^:unit secret-key->pem-test
+  (testing "Converting SecretKeySpec to PEM string is successful"
+    (let [secret-key (e/generate-secret-key)
+          pem-result (p/secret-key->pem secret-key)]
+      (is (string/includes? pem-result "SECRET KEY")))))
+
+
+(deftest ^:unit pem->secret-key-test
+  (testing "Converting PEM string to SecretKeySpec is successful"
+    (let [data   "-----BEGIN SECRET KEY-----\nHVyE+5SDlYxLhzF5dZ0abz/zr+oeGsdi2qZcOVc4ZOI=\n-----END SECRET KEY-----\n"
+          result (p/pem->secret-key data)]
+      (is (instance? SecretKeySpec result))
+      (match (alength (.getEncoded result)) 32))))
+
+
+(deftest ^:unit secret-key->encrypted-pem-test
+  (testing "Converting SecretKeySpec to encrypted PEM string is successful"
+    (let [secret-key (e/generate-secret-key)
+          pem-result (p/secret-key->encrypted-pem secret-key "123456")]
+      (is (string/includes? pem-result "ENCRYPTED SECRET KEY")))))
+
+
+(deftest ^:unit encrypted-pem->secret-key-test
+  (testing "Converting encrypted PEM string to SecretKeySpec is successful"
+    (let [data   "-----BEGIN ENCRYPTED SECRET KEY-----\nH+ncqPpSJ2tVSsWaVKZyYkaoM/AUtz7UZ+sIlGeJVfkmvsbUndK05MIjbkmyp20o\n-----END ENCRYPTED SECRET KEY-----"
+          bad-password "1234567"
+          good-password "123456"
+          result (p/encrypted-pem->secret-key data good-password)]
+      (is (instance? SecretKeySpec result))
+      (match (alength (.getEncoded result)) 32)
+      (is (thrown-with-msg? Exception #"pad block corrupted"
+            (p/encrypted-pem->secret-key data bad-password))))))

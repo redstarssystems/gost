@@ -1,5 +1,7 @@
 (ns org.rssys.gost.pem
   "Utility functions to import/export keys and other stuff to PEM format"
+  (:require
+    [clojure.string :as string])
   (:import
     (java.io
       StringReader
@@ -7,6 +9,13 @@
     (java.security
       PrivateKey
       PublicKey)
+    (javax.crypto
+      Cipher
+      SecretKeyFactory)
+    (javax.crypto.spec
+      IvParameterSpec
+      PBEKeySpec
+      SecretKeySpec)
     (org.bouncycastle.asn1.nist
       NISTObjectIdentifiers)
     (org.bouncycastle.asn1.pkcs
@@ -144,3 +153,59 @@
     (.close sr)
     (.close pem-reader)
     (.getContent data)))
+
+
+(defn secret-key->pem
+  "Convert secret key to PEM (PKCS#8) string.
+  Secret key is unencrypted!"
+  ^String
+  [^SecretKeySpec secret-key]
+  (write-bytes-to-pem "SECRET KEY" (.getEncoded secret-key)))
+
+
+(defn pem->secret-key
+  "Convert plain PEM (PKCS#8) string to SecretKey.
+  * `algo-name` - allowed values \"GOST28147\" or \"GOST3412-2015\" (default)"
+  ([^String pem-secret-key]
+    (pem->secret-key pem-secret-key "GOST3412-2015"))
+  ([^String pem-secret-key ^String algo-name]
+    (assert (string/includes? pem-secret-key "SECRET KEY") "PEM string should contain secret key.")
+    (SecretKeySpec. (read-bytes-from-pem pem-secret-key) algo-name)))
+
+
+
+(defn secret-key->encrypted-pem
+  "Convert secret key to encrypted PEM (PKCS#8) string.
+  Secret key will be encrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
+  ^String
+  [^SecretKeySpec secret-key ^String password]
+  (write-bytes-to-pem "ENCRYPTED SECRET KEY"
+    (let [data-to-be-encrypted (.getEncoded secret-key)
+          salt-bytes           (.getBytes "org.rssys.password.salt.string!!")
+          secret-factory       (SecretKeyFactory/getInstance "PBKDF2WITHHMACGOST3411" "BC")
+          key-spec             (PBEKeySpec. (.toCharArray password) salt-bytes 1024 256)
+          new-secret-key       (SecretKeySpec. (.getEncoded (.generateSecret secret-factory key-spec)) "GOST3412-2015")
+          cipher               (Cipher/getInstance "GOST3412-2015/CBC/PKCS7Padding")
+          iv                   (IvParameterSpec. (byte-array [2 0 2 2 0 1 0 1 1 0 1 0 2 2 0 2]))
+          _                    (.init cipher Cipher/ENCRYPT_MODE new-secret-key iv)]
+      (.doFinal cipher data-to-be-encrypted))))
+
+
+(defn encrypted-pem->secret-key
+  "Convert encrypted PEM (PKCS#8) string to SecretKey.
+  * `algo-name` - allowed values \"GOST28147\" or \"GOST3412-2015\" (default)"
+  ([^String encrypted-pem-secret-key ^String password]
+    (encrypted-pem->secret-key encrypted-pem-secret-key password "GOST3412-2015"))
+  ([^String encrypted-pem-secret-key ^String password ^String algo-name]
+    (assert (string/includes? encrypted-pem-secret-key "ENCRYPTED SECRET KEY") "PEM string should contain encrypted secret key.")
+    (SecretKeySpec.
+      (let [encrypted-bytes (read-bytes-from-pem encrypted-pem-secret-key)
+            salt-bytes      (.getBytes "org.rssys.password.salt.string!!")
+            secret-factory  (SecretKeyFactory/getInstance "PBKDF2WITHHMACGOST3411" "BC")
+            key-spec        (PBEKeySpec. (.toCharArray password) salt-bytes 1024 256)
+            new-secret-key  (SecretKeySpec. (.getEncoded (.generateSecret secret-factory key-spec)) "GOST3412-2015")
+            cipher          (Cipher/getInstance "GOST3412-2015/CBC/PKCS7Padding")
+            iv              (IvParameterSpec. (byte-array [2 0 2 2 0 1 0 1 1 0 1 0 2 2 0 2]))
+            _               (.init cipher Cipher/DECRYPT_MODE new-secret-key iv)]
+        (.doFinal cipher encrypted-bytes))
+      algo-name)))

@@ -302,6 +302,35 @@ This is high-level functions.
 ----
 (require '[org.rssys.gost.sign :as s])
 (require '[org.rssys.gost.pem :as p])
+(require '[org.rssys.gost.encrypt :as e])
+
+;; Generate secret key
+(def secret-key-2015 (e/generate-secret-key))
+
+;; Convert SecretKeySpec to encrypted PEM string
+;; Secret key will be encrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
+(def encrypted-pem-secret-key (p/secret-key->encrypted-pem secret-key-2015 "123456"))
+
+
+;; Restore secret key from plain PEM
+;; Secret key will be decrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
+(def restored-encrypted-secret-key-2015 (p/encrypted-pem->secret-key encrypted-pem-secret-key "123456"))
+
+
+;; Check that keys are equal
+(= restored-encrypted-secret-key-2015 secret-key-2015)
+
+;; PEM string with plain secret key
+;; Warning: PEM string will be not encrypted!
+(def pem-secret-key-2015 (p/secret-key->pem secret-key-2015))
+
+
+;; Restore secret key from plain PEM
+(def restored-secret-key-2015 (p/pem->secret-key pem-secret-key-2015))
+
+
+;; Check that keys are equal
+(= restored-secret-key-2015 secret-key-2015)
 
 ;; Generate public and private keypair 256 bit length
 (def kp-256 (s/gen-keypair-256))
