@@ -17,10 +17,9 @@ The library provides:
 - digest, hmac using _GOST3411-94/2012_ 256 and 512 bits;
 - signature using _GOST3410-2012_ 256 and 512 bit key length;
 - key generation: secret keys, public/private keys, password based keys;
-- high level functions:
-** compression + encryption + mac / decryption + check mac + decompression
-** encrypting with EC public keys / decrypting with EC private keys
-** save / load keys (secret, private, public) to PEM (PKCS8) file.
+- compression + encryption + mac / decryption + check mac + decompression
+- encrypting with EC public keys / decrypting with EC private keys
+- save / load keys (private, public) to PEM (PKCS8) format.
 
 
 This library is successor of https://github.com/middlesphere/crypto-gost[crypto-gost].
@@ -384,8 +383,6 @@ Public key:
 Parameter set: id-tc26-gost-3410-2012-512-paramSetA
 Digest Algorithm: GOST R 34-11-2012 (512 bit)
 ----
-
-
 
 
 
