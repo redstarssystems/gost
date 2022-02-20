@@ -3,10 +3,10 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.rssys</groupId>
   <artifactId>gost</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <name>org.rssys/gost</name>
   <description>Bouncycastle wrapper for Clojure to work with GOST</description>
-  <url>https://github.com/rssys/gost</url>
+  <url>https://github.com/redstarssystems/gost</url>
   <licenses>
     <license>
       <name>Eclipse Public License</name>
@@ -19,10 +19,10 @@
     </developer>
   </developers>
   <scm>
-    <url>https://github.com/rssys/gost</url>
-    <connection>scm:git:git://github.com/rssys/gost.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/rssys/gost.git</developerConnection>
-    <tag>v0.1.0</tag>
+    <url>https://github.com/redstarssystems/gost</url>
+    <connection>scm:git:git://github.com/redstarssystems/gost.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/redstarssystems/gost.git</developerConnection>
+    <tag>v0.1.1</tag>
   </scm>
   <dependencies>
     <dependency>

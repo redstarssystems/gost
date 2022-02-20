@@ -1,7 +1,16 @@
 == Changelog
 
-=== [0.1.0-SNAPSHOT] - 2022-02-06
+=== [0.1.1] - 2022-02-21
 
 Initial release.
+
+The library provides:
+
+- encryption, mac using _GOST 28147-89_, _GOST 3412-2015_;
+- digest, hmac using _GOST3411-94/2012_ 256 and 512 bits;
+- signature using _GOST3410-2012_ 256 and 512 bit key length;
+- key generation: secret keys, public/private keys, password based keys;
+- compression + encryption + mac / decryption + check mac + decompression
+- save/load keys (secret, private, public) to PEM format.
 
 ==== Added

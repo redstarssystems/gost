@@ -28,7 +28,7 @@ Add dependency to the `deps.edn`:
 
 [source,clojure]
 ----
-:deps { org.rssys/gost {:mvn/version "0.1.0"}}
+:deps { org.rssys/gost {:mvn/version "0.1.1"}}
 ----
 
 Require necessary namespaces:
