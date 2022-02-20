@@ -2,6 +2,7 @@
   (:require
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]]
+    [matcho.core :refer [match]]
     [org.rssys.gost.pem :as p]
     [org.rssys.gost.sign :as s])
   (:import
@@ -58,3 +59,18 @@
           password    "123456"
           private-key (p/encrypted-pem->private-key (slurp input-file) password)]
       (is (instance? BCECGOST3410_2012PrivateKey private-key)))))
+
+
+(deftest ^:unit write-bytes-to-pem-test
+  (testing "Converting byte array to PEM string is successful"
+    (let [data (.getBytes "Hello, world!")
+          data-type "PLAIN TEXT"
+          pem-result (p/write-bytes-to-pem data-type data)]
+      (is (string/includes? pem-result data-type)))))
+
+
+(deftest ^:unit read-bytes-from-pem-test
+  (testing "Converting PEM string to byte array is successful"
+    (let [data       "-----BEGIN PLAIN TEXT-----\nSGVsbG8sIHdvcmxkIQ==\n-----END PLAIN TEXT-----"
+          result (p/read-bytes-from-pem data)]
+      (match  (String. result) "Hello, world!"))))

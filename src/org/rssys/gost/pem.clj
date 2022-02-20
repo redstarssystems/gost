@@ -23,7 +23,10 @@
       PKCS8EncryptedPrivateKeyInfo)
     (org.bouncycastle.pkcs.jcajce
       JcaPKCS8EncryptedPrivateKeyInfoBuilder
-      JcePKCSPBEOutputEncryptorBuilder)))
+      JcePKCSPBEOutputEncryptorBuilder)
+    (org.bouncycastle.util.io.pem
+      PemObject
+      PemReader)))
 
 
 (defn private-key->pem
@@ -114,3 +117,30 @@
 
     private-key))
 
+
+(defn write-bytes-to-pem
+  "Writes arbitrary byte array to PEM string.
+  * `type` - type of `data` which will be in header, before and after PEM content.
+    Example of `type`: SIGNATURE, HMAC etc.
+  * `data` - any byte array"
+  ^String
+  [^String type ^bytes data]
+  (let [pem-obj    (PemObject. type data)
+        sw         (StringWriter.)
+        pem-writer (JcaPEMWriter. sw)]
+    (.writeObject pem-writer pem-obj)
+    (.close pem-writer)
+    (.toString sw)))
+
+
+(defn read-bytes-from-pem
+  "Reads arbitrary byte array from PEM string.
+  Returns byte array."
+  ^bytes
+  [^String pem-data]
+  (let [sr         (StringReader. pem-data)
+        pem-reader (PemReader. sr)
+        data       (.readPemObject pem-reader)]
+    (.close sr)
+    (.close pem-reader)
+    (.getContent data)))

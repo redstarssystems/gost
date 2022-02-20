@@ -96,3 +96,11 @@
 
 ;; check that keys are equal
 (= restored-public-512 public-key-512)
+
+
+;; You can write to PEM format arbitrary byte array
+(p/write-bytes-to-pem "MESSAGE" (.getBytes "Hello"))
+
+
+;; You can read from PEM arbitrary byte array
+(String. (p/read-bytes-from-pem "-----BEGIN MESSAGE-----\nSGVsbG8=\n-----END MESSAGE-----\n"))
