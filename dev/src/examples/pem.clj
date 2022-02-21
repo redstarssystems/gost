@@ -148,7 +148,7 @@
 (def encrypted-pem-secret-key (p/secret-key->encrypted-pem secret-key-2015 "123456"))
 
 
-;; Restore secret key from plain PEM
+;; Restore secret key from encrypted PEM
 ;; Secret key will be decrypted with key derived from PBKDF2(`password`) using GOST3412-2015-CBC"
 (def restored-encrypted-secret-key-2015 (p/encrypted-pem->secret-key encrypted-pem-secret-key "123456"))
 
