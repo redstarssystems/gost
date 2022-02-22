@@ -173,6 +173,19 @@
     (SecretKeySpec. (read-bytes-from-pem pem-secret-key) algo-name)))
 
 
+(def ^:const pem-iv-16 [2 0 2 2 0 1 0 1 1 0 1 0 2 2 0 2])   ;; mirrored date 20220101 | 10102202
+(def ^:const pem-salt-string "org.rssys.password.salt.string!!")
+
+
+(defn- init-pem-cipher
+  [^String password ^bytes salt ^long mode ^bytes iv-16]
+  (let [secret-factory (SecretKeyFactory/getInstance "PBKDF2WITHHMACGOST3411" "BC")
+        key-spec       (PBEKeySpec. (.toCharArray password) salt 1024 256)
+        new-secret-key (SecretKeySpec. (.getEncoded (.generateSecret secret-factory key-spec)) "GOST3412-2015")
+        cipher         (Cipher/getInstance "GOST3412-2015/CBC/PKCS7Padding")
+        _              (.init cipher mode new-secret-key (IvParameterSpec. iv-16))]
+    cipher))
+
 
 (defn secret-key->encrypted-pem
   "Convert secret key to encrypted PEM (PKCS#8) string.
@@ -181,13 +194,7 @@
   [^SecretKeySpec secret-key ^String password]
   (write-bytes-to-pem "ENCRYPTED SECRET KEY"
     (let [data-to-be-encrypted (.getEncoded secret-key)
-          salt-bytes           (.getBytes "org.rssys.password.salt.string!!")
-          secret-factory       (SecretKeyFactory/getInstance "PBKDF2WITHHMACGOST3411" "BC")
-          key-spec             (PBEKeySpec. (.toCharArray password) salt-bytes 1024 256)
-          new-secret-key       (SecretKeySpec. (.getEncoded (.generateSecret secret-factory key-spec)) "GOST3412-2015")
-          cipher               (Cipher/getInstance "GOST3412-2015/CBC/PKCS7Padding")
-          iv                   (IvParameterSpec. (byte-array [2 0 2 2 0 1 0 1 1 0 1 0 2 2 0 2]))
-          _                    (.init cipher Cipher/ENCRYPT_MODE new-secret-key iv)]
+          cipher               (init-pem-cipher password (.getBytes pem-salt-string) Cipher/ENCRYPT_MODE (byte-array pem-iv-16))]
       (.doFinal cipher data-to-be-encrypted))))
 
 
@@ -200,12 +207,6 @@
     (assert (string/includes? encrypted-pem-secret-key "ENCRYPTED SECRET KEY") "PEM string should contain encrypted secret key.")
     (SecretKeySpec.
       (let [encrypted-bytes (read-bytes-from-pem encrypted-pem-secret-key)
-            salt-bytes      (.getBytes "org.rssys.password.salt.string!!")
-            secret-factory  (SecretKeyFactory/getInstance "PBKDF2WITHHMACGOST3411" "BC")
-            key-spec        (PBEKeySpec. (.toCharArray password) salt-bytes 1024 256)
-            new-secret-key  (SecretKeySpec. (.getEncoded (.generateSecret secret-factory key-spec)) "GOST3412-2015")
-            cipher          (Cipher/getInstance "GOST3412-2015/CBC/PKCS7Padding")
-            iv              (IvParameterSpec. (byte-array [2 0 2 2 0 1 0 1 1 0 1 0 2 2 0 2]))
-            _               (.init cipher Cipher/DECRYPT_MODE new-secret-key iv)]
+            cipher               (init-pem-cipher password (.getBytes pem-salt-string) Cipher/DECRYPT_MODE (byte-array pem-iv-16))]
         (.doFinal cipher encrypted-bytes))
       algo-name)))

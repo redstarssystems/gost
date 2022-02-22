@@ -103,7 +103,7 @@
 
 (deftest ^:unit encrypted-pem->secret-key-test
   (testing "Converting encrypted PEM string to SecretKeySpec is successful"
-    (let [data   "-----BEGIN ENCRYPTED SECRET KEY-----\nH+ncqPpSJ2tVSsWaVKZyYkaoM/AUtz7UZ+sIlGeJVfkmvsbUndK05MIjbkmyp20o\n-----END ENCRYPTED SECRET KEY-----"
+    (let [data   (slurp "test/data/test-secret-key.pem")
           bad-password "1234567"
           good-password "123456"
           result (p/encrypted-pem->secret-key data good-password)]

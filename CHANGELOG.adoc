@@ -1,5 +1,10 @@
 == Changelog
 
+=== [0.1.2] - unpublished
+
+- refactoring for `encrypted-pem->secret-key` -> created helper & constants.
+
+
 === [0.1.1] - 2022-02-21
 
 Initial release.
@@ -13,4 +18,4 @@ The library provides:
 - compression + encryption + mac / decryption + check mac + decompression
 - save/load keys (secret, private, public) to PEM format.
 
-==== Added
+
