@@ -2,9 +2,10 @@
 
 === [0.2.0] - unpublished
 
-- refactoring for `encrypted-pem->secret-key` -> created helper & constants.
-- add read/write functions for structured data with PEM
-- fixed call of security provider
+- refactoring for `encrypted-pem->secret-key` -> created helper & constants;
+- add read/write functions for structured data with PEM;
+- fixed security provider registration;
+- add data armor functions with signature.
 
 
 === [0.1.1] - 2022-02-21

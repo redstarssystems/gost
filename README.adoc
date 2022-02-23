@@ -436,6 +436,65 @@ Parameter set: id-tc26-gost-3410-2012-512-paramSetA
 Digest Algorithm: GOST R 34-11-2012 (512 bit)
 ----
 
+== Armor data
+
+This is high-level functions.
+
+[source,clojure]
+.armor.clj
+----
+(require '[org.rssys.gost.armor :as a])
+(require '[org.rssys.gost.pem :as p])
+(require '[org.rssys.gost.sign :as s])
+
+;; Read test public and private keys
+(def public-key-256 (p/pem->public-key (slurp "test/data/test-public-key-256.pem")))
+(def private-key-256 (p/pem->private-key (slurp "test/data/test-private-key-256.pem")))
+
+
+;; Read plain text
+(def plain-32-message (slurp "test/data/plain32.txt"))
+
+
+;; Sign message + time and produce armored message: plain text + time + signature
+(def armored-message (a/sign-message private-key-256 plain-32-message))
+
+"-----[ START DATA ]-----
+This is message, length=32 bytes
+-----[ END DATA ]-----
+-----BEGIN SIGNATURE-----
+time: 2022-02-24T01:23:16.246966
+
+Ow1R7KEKvFjbOg33LZt390NqPX2d6vOQi3k0lNWDMJ8aJGlOhLvYxfZlk8FnpbKI
+eUsdGvkNc4yzwM5x5VEwRQ==
+-----END SIGNATURE-----
+"
+
+;; Verify signature for message + time and if signature is valid return message
+(def restored-message (a/verify-message public-key-256 armored-message))
+
+;; Sign message with headers data
+(def armored-message-with-headers
+  (a/sign-message private-key-256 plain-32-message
+    :headers {:issuer "Certification Authority" :address "Moscow"}))
+
+"-----[ START DATA ]-----
+This is message, length=32 bytes
+-----[ END DATA ]-----
+-----BEGIN SIGNATURE-----
+issuer: Certification Authority
+address: Moscow
+time: 2022-02-24T01:38:20.397299
+
+IiCHULQELZsdRFcsbjE9Xm0c24fvXplOiUO1mL4ze+wcPASsRX2ouA7L52xb7gZe
+WLxZ2OKplo+0JHVyXQCXRQ==
+-----END SIGNATURE-----
+"
+
+;; Verify message with headers
+(a/verify-message public-key-256 (slurp "test/data/armored-plain32-with-headers.pem"))
+
+----
 
 
 == Low-level functions
