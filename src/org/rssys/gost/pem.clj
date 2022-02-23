@@ -8,7 +8,8 @@
       StringWriter)
     (java.security
       PrivateKey
-      PublicKey)
+      PublicKey
+      Security)
     (javax.crypto
       Cipher
       SecretKeyFactory)
@@ -20,6 +21,8 @@
       NISTObjectIdentifiers)
     (org.bouncycastle.asn1.pkcs
       PrivateKeyInfo)
+    (org.bouncycastle.jce.provider
+      BouncyCastleProvider)
     (org.bouncycastle.openssl
       PEMEncryptedKeyPair
       PEMParser)
@@ -37,6 +40,9 @@
       PemHeader
       PemObject
       PemReader)))
+
+
+(def _ (Security/addProvider (BouncyCastleProvider.)))
 
 
 (defn private-key->pem

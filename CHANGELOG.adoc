@@ -4,6 +4,7 @@
 
 - refactoring for `encrypted-pem->secret-key` -> created helper & constants.
 - add read/write functions for structured data with PEM
+- fixed call of security provider
 
 
 === [0.1.1] - 2022-02-21
