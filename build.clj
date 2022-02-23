@@ -2,11 +2,12 @@
   (:refer-clojure :exclude [test])
   (:require
     [clojure.pprint :as pprint]
+    [clojure.tools.build.api :as b]
     [org.corfield.build :as bb]))
 
 
 (def artifact 'org.rssys/gost)
-(def version "0.1.1")
+(def version "0.2.0-SNAPSHOT")
 
 
 ;; (format "1.0.%s" (System/getenv "git-rev-count"))
@@ -35,9 +36,11 @@
 (defn jar
   "Build the JAR."
   [opts]
-  (-> opts
-    (assoc :lib (:artifact project-env) :version (:version project-env))
-    (bb/jar)))
+  (let [opts (assoc opts :lib (:artifact project-env) :version (:version project-env))
+        pom-path (str (bb/default-class-dir) "/"  (b/pom-path opts))]
+    (-> opts
+      (bb/jar))
+    (b/copy-file {:src pom-path :target "./pom.xml"})))
 
 
 (defn install
