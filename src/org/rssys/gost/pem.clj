@@ -34,6 +34,7 @@
       JcaPKCS8EncryptedPrivateKeyInfoBuilder
       JcePKCSPBEOutputEncryptorBuilder)
     (org.bouncycastle.util.io.pem
+      PemHeader
       PemObject
       PemReader)))
 
@@ -129,12 +130,14 @@
 
 (defn write-bytes-to-pem
   "Writes arbitrary byte array to PEM string.
-  * `type` - type of `data` which will be in header, before and after PEM content.
-    Example of `type`: SIGNATURE, HMAC etc.
-  * `data` - any byte array"
+  * `type` - type of `data` which will be in divider before and after PEM content.
+  * `data` - any byte array
+  * `headers` - optional map with PEM headers content."
   ^String
-  [^String type ^bytes data]
-  (let [pem-obj    (PemObject. type data)
+  [^String type ^bytes data & {:keys [headers]}]
+  (let [pem-obj    (if headers
+                     (PemObject. type (map (fn [[k v]] (PemHeader. (if (keyword? k) (name k) (str k)) (str v))) headers) data)
+                     (PemObject. type data))
         sw         (StringWriter.)
         pem-writer (JcaPEMWriter. sw)]
     (.writeObject pem-writer pem-obj)
@@ -153,6 +156,21 @@
     (.close sr)
     (.close pem-reader)
     (.getContent data)))
+
+
+(defn read-struct-from-pem
+  "Reads structured data from PEM string.
+  Returns {:data ^bytes :headers ^map :type ^String}."
+  ^bytes
+  [^String pem-data]
+  (let [sr         (StringReader. pem-data)
+        pem-reader (PemReader. sr)
+        data       (.readPemObject pem-reader)]
+    (.close sr)
+    (.close pem-reader)
+    {:data (.getContent data)
+     :type (.getType data)
+     :headers (reduce (fn [acc ^PemHeader i] (assoc acc (.getName i) (.getValue i))) {} (.getHeaders data))}))
 
 
 (defn secret-key->pem
@@ -207,6 +225,6 @@
     (assert (string/includes? encrypted-pem-secret-key "ENCRYPTED SECRET KEY") "PEM string should contain encrypted secret key.")
     (SecretKeySpec.
       (let [encrypted-bytes (read-bytes-from-pem encrypted-pem-secret-key)
-            cipher               (init-pem-cipher password (.getBytes pem-salt-string) Cipher/DECRYPT_MODE (byte-array pem-iv-16))]
+            cipher          (init-pem-cipher password (.getBytes pem-salt-string) Cipher/DECRYPT_MODE (byte-array pem-iv-16))]
         (.doFinal cipher encrypted-bytes))
       algo-name)))

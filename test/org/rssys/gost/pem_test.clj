@@ -69,7 +69,27 @@
     (let [data       (.getBytes "Hello, world!")
           data-type  "PLAIN TEXT"
           pem-result (p/write-bytes-to-pem data-type data)]
-      (is (string/includes? pem-result data-type)))))
+      (is (string/includes? pem-result data-type))))
+
+  (testing "Writing structured data to PEM string is successful"
+    (let [data           (.getBytes "Hello")
+          headers        {:status "unencrypted" :date "01-01-2022"}
+          data-type      "MESSAGE"
+          pem-result     (p/write-bytes-to-pem data-type data :headers headers)
+          correct-result (slurp "test/data/test-plain-with-headers.pem")]
+      (is (string/starts-with? pem-result correct-result)))))
+
+
+(deftest ^:unit read-struct-from-pem-test
+  (testing "Reading structured data from PEM string is successful"
+    (let [data      (into [] (.getBytes "Hello"))
+          headers   {"status" "unencrypted" "date" "01-01-2022"}
+          data-type "MESSAGE"
+          input-pem (slurp "test/data/test-plain-with-headers.pem")
+          result    (p/read-struct-from-pem input-pem)]
+      (match (:type result) data-type)
+      (match (:headers result) headers)
+      (match (into [] (:data result)) data))))
 
 
 (deftest ^:unit read-bytes-from-pem-test
@@ -103,10 +123,10 @@
 
 (deftest ^:unit encrypted-pem->secret-key-test
   (testing "Converting encrypted PEM string to SecretKeySpec is successful"
-    (let [data   (slurp "test/data/test-secret-key.pem")
-          bad-password "1234567"
+    (let [data          (slurp "test/data/test-secret-key.pem")
+          bad-password  "1234567"
           good-password "123456"
-          result (p/encrypted-pem->secret-key data good-password)]
+          result        (p/encrypted-pem->secret-key data good-password)]
       (is (instance? SecretKeySpec result))
       (match (alength (.getEncoded result)) 32)
       (is (thrown-with-msg? Exception #"pad block corrupted"

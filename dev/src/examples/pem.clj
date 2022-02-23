@@ -106,6 +106,23 @@
 ;; You can read from PEM arbitrary byte array
 (String. (p/read-bytes-from-pem "-----BEGIN MESSAGE-----\nSGVsbG8=\n-----END MESSAGE-----\n"))
 
+
+;; You can write structured data to PEM format
+(p/write-bytes-to-pem "MESSAGE" (.getBytes "Hello") :headers {:status "unencrypted" :date "01-01-2022"}) ;; =>
+;; "-----BEGIN MESSAGE-----
+;;status: unencrypted
+;;date: 01-01-2022
+;;
+;;SGVsbG8=
+;;-----END MESSAGE-----
+;;"
+
+;; You can read structured data from PEM string
+(p/read-struct-from-pem (slurp "test/data/test-plain-with-headers.pem")) ;; =>
+;;{:data [72, 101, 108, 108, 111],
+;; :type "MESSAGE",
+;; :headers {"status" "unencrypted", "date" "01-01-2022"}}
+
 (def message "Hello, world!")
 (def input (.getBytes message))
 

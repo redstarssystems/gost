@@ -1,8 +1,9 @@
 == Changelog
 
-=== [0.1.2] - unpublished
+=== [0.2.0] - unpublished
 
 - refactoring for `encrypted-pem->secret-key` -> created helper & constants.
+- add read/write functions for structured data with PEM
 
 
 === [0.1.1] - 2022-02-21
