@@ -108,7 +108,7 @@
 
 
 ;; You can write structured data to PEM format
-(p/write-bytes-to-pem "MESSAGE" (.getBytes "Hello") :headers {:status "unencrypted" :date "01-01-2022"}) ;; =>
+(p/write-struct-to-pem {:data (.getBytes "Hello") :type "MESSAGE" :headers {:status "unencrypted" :date "01-01-2022"}}) ;; =>
 ;; "-----BEGIN MESSAGE-----
 ;;status: unencrypted
 ;;date: 01-01-2022

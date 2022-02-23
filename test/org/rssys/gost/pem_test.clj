@@ -69,13 +69,15 @@
     (let [data       (.getBytes "Hello, world!")
           data-type  "PLAIN TEXT"
           pem-result (p/write-bytes-to-pem data-type data)]
-      (is (string/includes? pem-result data-type))))
+      (is (string/includes? pem-result data-type)))))
 
+
+(deftest ^:unit write-struct-to-pem-test
   (testing "Writing structured data to PEM string is successful"
     (let [data           (.getBytes "Hello")
           headers        {:status "unencrypted" :date "01-01-2022"}
           data-type      "MESSAGE"
-          pem-result     (p/write-bytes-to-pem data-type data :headers headers)
+          pem-result     (p/write-struct-to-pem {:data data :type data-type :headers headers})
           correct-result (slurp "test/data/test-plain-with-headers.pem")]
       (is (string/starts-with? pem-result correct-result)))))
 

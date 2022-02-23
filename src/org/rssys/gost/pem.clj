@@ -131,13 +131,10 @@
 (defn write-bytes-to-pem
   "Writes arbitrary byte array to PEM string.
   * `type` - type of `data` which will be in divider before and after PEM content.
-  * `data` - any byte array
-  * `headers` - optional map with PEM headers content."
+  * `data` - any byte array"
   ^String
-  [^String type ^bytes data & {:keys [headers]}]
-  (let [pem-obj    (if headers
-                     (PemObject. type (map (fn [[k v]] (PemHeader. (if (keyword? k) (name k) (str k)) (str v))) headers) data)
-                     (PemObject. type data))
+  [^String type ^bytes data]
+  (let [pem-obj    (PemObject. type data)
         sw         (StringWriter.)
         pem-writer (JcaPEMWriter. sw)]
     (.writeObject pem-writer pem-obj)
@@ -156,6 +153,19 @@
     (.close sr)
     (.close pem-reader)
     (.getContent data)))
+
+
+(defn write-struct-to-pem
+  "Writes structured data to PEM string.
+  {:data ^bytes :headers ^map :type ^String}"
+  ^String
+  [{:keys [data headers type]}]
+  (let [pem-obj    (PemObject. type (map (fn [[k v]] (PemHeader. (if (keyword? k) (name k) (str k)) (str v))) headers) data)
+        sw         (StringWriter.)
+        pem-writer (JcaPEMWriter. sw)]
+    (.writeObject pem-writer pem-obj)
+    (.close pem-writer)
+    (.toString sw)))
 
 
 (defn read-struct-from-pem
