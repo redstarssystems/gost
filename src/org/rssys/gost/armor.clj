@@ -10,7 +10,9 @@
     (java.io
       ByteArrayOutputStream)
     (java.time
-      LocalDateTime)
+      ZonedDateTime)
+    (java.time.format
+      DateTimeFormatter)
     (org.bouncycastle.jcajce.provider.asymmetric.ecgost12
       BCECGOST3410_2012PrivateKey
       BCECGOST3410_2012PublicKey)))
@@ -24,10 +26,14 @@
   "Sign text message and headers data with PrivateKey.
   `headers` - an optional map where only string and keywords are allowed (no nested maps).
   `time` of signature is always added to headers.
+  `datetime-formatter` is optional parameter should be of ^java.time.format.DateTimeFormatter class
   Returns armored text message with signature."
   ^String
-  [^BCECGOST3410_2012PrivateKey private-key ^String message & {:keys [headers]}]
-  (let [sign-time         (str (LocalDateTime/now))
+  [^BCECGOST3410_2012PrivateKey private-key ^String message & {:keys [headers datetime-formatter]}]
+  (let [time-formatter    (or datetime-formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+        sign-time         (.format
+                            time-formatter
+                            (ZonedDateTime/now))
         headers-str       (when headers                     ;; convert all keywords to strings
                             (walk/postwalk (fn [x] (cond (keyword? x) (name x) :else x)) headers))
         _                 (when headers                     ;; check all values are strings

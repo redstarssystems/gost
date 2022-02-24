@@ -3,7 +3,11 @@
   (:require
     [org.rssys.gost.armor :as a]
     [org.rssys.gost.pem :as p]
-    [org.rssys.gost.sign :as s]))
+    [org.rssys.gost.sign :as s])
+  (:import
+    (java.time.format
+      DateTimeFormatter
+      FormatStyle)))
 
 
 ;; Read test public and private keys
@@ -39,6 +43,13 @@
 (def armored-message-with-headers
   (a/sign-message private-key-256 plain-32-message
     :headers {:issuer "Certification Authority" :address "Moscow"}))
+
+
+;; Sign message with headers data and custom date-time formatter
+(def armored-message-with-headers-custom-formatter
+  (a/sign-message private-key-256 plain-32-message
+    :headers {:issuer "Certification Authority" :address "Moscow"}
+    :datetime-formatter (DateTimeFormatter/ofLocalizedDateTime FormatStyle/LONG)))
 
 
 ;; Verify message with headers

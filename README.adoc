@@ -491,6 +491,24 @@ WLxZ2OKplo+0JHVyXQCXRQ==
 -----END SIGNATURE-----
 "
 
+;; Sign message with headers data and custom date-time formatter
+(def armored-message-with-headers-custom-formatter
+  (a/sign-message private-key-256 plain-32-message
+    :headers {:issuer "Certification Authority" :address "Moscow"}
+    :datetime-formatter (DateTimeFormatter/ofLocalizedDateTime FormatStyle/LONG)))
+"-----[ START DATA ]-----
+This is message, length=32 bytes
+-----[ END DATA ]-----
+-----BEGIN SIGNATURE-----
+issuer: Certification Authority
+address: Moscow
+time: 24 февраля 2022 г., 23:26:26 MSK
+
+OFVM4pfFJ4hpC0p7Scr9XNAj1JDvf3meDGWFTNIhWsgyKCIfGJc7FGyDsmFPzvlY
+OgkYN1rBj8kgIQDvrM+W7A==
+-----END SIGNATURE-----
+"
+
 ;; Verify message with headers
 (a/verify-message public-key-256 (slurp "test/data/armored-plain32-with-headers.pem"))
 
