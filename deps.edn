@@ -21,19 +21,19 @@
 
              :test     {:extra-deps  {org.clojure/test.check        {:mvn/version "1.1.1"}
                                       healthsamurai/matcho          {:mvn/version "0.3.9"}
-                                      lambdaisland/kaocha           {:mvn/version "1.62.993"}
+                                      lambdaisland/kaocha           {:mvn/version "1.63.998"}
                                       lambdaisland/kaocha-cloverage {:mvn/version "1.0.75"}}
                         :extra-paths ["resources" "test" "test/resources"]
                         :jvm-opts    []
                         :main-opts   ["--main" "kaocha.runner"]}
 
 
-             :build    {:deps       {io.github.seancorfield/build-clj {:git/tag "v0.6.7" :git/sha "22c2d09"}}
+             :build    {:deps       {io.github.seancorfield/build-clj {:git/tag "v0.7.0" :git/sha "5d2cb60"}}
                         :ns-default build}
 
 
              ;; slf4j-nop is required to suppress warning "org.slf4j.impl.StaticLoggerBinder"
-             :outdated {:extra-deps {com.github.liquidz/antq {:mvn/version "1.4.0"}
-                                     org.slf4j/slf4j-nop {:mvn/version "1.7.35"}}
+             :outdated {:extra-deps {com.github.liquidz/antq {:mvn/version "1.5.1"}
+                                     org.slf4j/slf4j-nop {:mvn/version "1.7.36"}}
                         :main-opts  ["-m" "antq.core"]}
              }}
