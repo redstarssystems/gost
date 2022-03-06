@@ -293,6 +293,45 @@ This is high-level functions.
 (s/verify-512 public-key-512 "test/data/big.txt" signature-512) ;; => true
 ----
 
+== Elliptic-curve Diffie–Hellman (ECDH) key agreement
+
+[source,clojure]
+.ecdh.clj
+----
+(require '[org.rssys.gost.sign :as s])
+
+;; Generate shared secret key 256-bit length using Elliptic-curve Diffie–Hellman (ECDH) algorithm.
+
+;; Generate Alice keypair
+(def alice-kp (s/gen-keypair-256))
+
+(def alice-private-key (s/get-private alice-kp))
+(def alice-public-key (s/get-public alice-kp))
+
+;; Generate Bob keypair
+(def bob-kp (s/gen-keypair-256))
+
+(def bob-private-key (s/get-private bob-kp))
+(def bob-public-key (s/get-public bob-kp))
+
+;; Generate random bytes which should be known for Alice and Bob
+;; `random-iv` is not secret and may be transferred via open channels.
+;; Recommended length is 16+ random bytes for generate-shared-secret-256
+;; and 32+ bytes for generate-shared-secret-512.
+(def random-iv (s/random-bytes 16))
+
+;; Generate shared secret 256-bits length for Alice
+(def alice-shared-secret (s/generate-shared-secret-256 alice-private-key bob-public-key random-iv))
+
+;; Generate shared secret 256-bits length for Bob
+(def bob-shared-secret (s/generate-shared-secret-256 bob-private-key alice-public-key random-iv))
+
+;; Check that keys are equal
+(= (into [] alice-shared-secret) (into [] bob-shared-secret)) ;; => true
+
+----
+
+
 
 == Export / Import Keys and other data to PEM
 

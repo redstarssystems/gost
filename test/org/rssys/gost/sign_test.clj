@@ -5,6 +5,8 @@
     [org.rssys.gost.digest :as d]
     [org.rssys.gost.sign :as sut])
   (:import
+    (java.security
+      SecureRandom)
     (org.bouncycastle.jcajce.provider.asymmetric.ecgost12
       BCECGOST3410_2012PrivateKey
       BCECGOST3410_2012PublicKey)))
@@ -232,3 +234,101 @@
           signature   (sut/sign-512 private-key input)
           result      (sut/verify-512 public-key input signature)]
       (match result true))))
+
+
+(deftest ^:unit generate-shared-secret-256-test
+  (testing "Generated shared secret key is generated successfully"
+    (let [kp           (sut/gen-keypair-256)
+          private-key  (.getPrivate kp)
+          public-key   (.getPublic kp)
+
+          kp2          (sut/gen-keypair-256)
+          private-key2 (.getPrivate kp2)
+          public-key2  (.getPublic kp2)
+
+          random-iv    (byte-array 16)
+          _            (.nextBytes (SecureRandom.) random-iv)
+
+          result1      (sut/generate-shared-secret-256 private-key public-key2 random-iv)
+          result2      (sut/generate-shared-secret-256 private-key2 public-key random-iv)]
+      (is (= (into [] result1) (into [] result2)) "Shared keys are equal")
+      (match (alength result1) 32)))
+
+  (testing "Wrong length of public key is not allowed for generate-shared-secret-256"
+    (let [kp               (sut/gen-keypair-256)
+          private-key      (sut/get-private kp)
+
+          wrong-keypair    (sut/gen-keypair-512)
+          wrong-public-key (.getPublic wrong-keypair)
+
+          random-iv        (byte-array 16)
+          _                (.nextBytes (SecureRandom.) random-iv)]
+      (is (thrown-with-msg? Error #"Public key should be 256 bit length"
+            (sut/generate-shared-secret-256 private-key wrong-public-key random-iv)))))
+
+  (testing "Wrong length of private key is not allowed for generate-shared-secret-256"
+    (let [wrong-keypair     (sut/gen-keypair-512)
+          wrong-private-key (sut/get-private wrong-keypair)
+
+          kp2               (sut/gen-keypair-256)
+          public-key2       (sut/get-public kp2)
+
+          random-iv         (byte-array 16)
+          _                 (.nextBytes (SecureRandom.) random-iv)]
+      (is (thrown-with-msg? Error #"Private key should be 256 bit length"
+            (sut/generate-shared-secret-256 wrong-private-key public-key2 random-iv))))))
+
+
+(deftest ^:unit generate-shared-secret-512-test
+  (testing "Generated shared secret key is generated successfully"
+    (let [kp           (sut/gen-keypair-512)
+          private-key  (.getPrivate kp)
+          public-key   (.getPublic kp)
+
+          kp2          (sut/gen-keypair-512)
+          private-key2 (.getPrivate kp2)
+          public-key2  (.getPublic kp2)
+
+          random-iv    (byte-array 16)
+          _            (.nextBytes (SecureRandom.) random-iv)
+
+          result1      (sut/generate-shared-secret-512 private-key public-key2 random-iv)
+          result2      (sut/generate-shared-secret-512 private-key2 public-key random-iv)]
+      (is (= (into [] result1) (into [] result2)) "Shared keys are equal")
+      (match (alength result1) 64)))
+
+  (testing "Wrong length of public key is not allowed for generate-shared-secret-512"
+    (let [kp            (sut/gen-keypair-512)
+          private-key   (.getPrivate kp)
+
+          wrong-keypair (sut/gen-keypair-256)
+          public-key2   (.getPublic wrong-keypair)
+
+          random-iv     (byte-array 16)
+          _             (.nextBytes (SecureRandom.) random-iv)]
+      (is (thrown-with-msg? Error #"Public key should be 512 bit length"
+            (sut/generate-shared-secret-512 private-key public-key2 random-iv)))))
+
+  (testing "Wrong length of private key is not allowed for generate-shared-secret-512"
+    (let [wrong-keypair     (sut/gen-keypair-256)
+          wrong-private-key (.getPrivate wrong-keypair)
+
+          kp2               (sut/gen-keypair-512)
+          public-key2       (.getPublic kp2)
+
+          random-iv         (byte-array 16)
+          _                 (.nextBytes (SecureRandom.) random-iv)]
+      (is (thrown-with-msg? Error #"Private key should be 512 bit length"
+            (sut/generate-shared-secret-512 wrong-private-key public-key2 random-iv)))))
+
+  (testing "Wrong EC Curve is not allowed"
+    (let [wrong-keypair     (sut/gen-keypair-512 "Tc26-Gost-3410-12-512-paramSetC")
+          wrong-private-key (.getPrivate wrong-keypair)
+
+          kp2               (sut/gen-keypair-512)
+          public-key2       (.getPublic kp2)
+
+          random-iv         (byte-array 16)
+          _                 (.nextBytes (SecureRandom.) random-iv)]
+      (is (thrown-with-msg? Error #"Public key has incompatible EC Curve parameters with private key"
+            (sut/generate-shared-secret-512 wrong-private-key public-key2 random-iv))))))

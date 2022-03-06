@@ -1,5 +1,10 @@
 == Changelog
 
+=== [0.3.0] - unpublished
+
+- add Elliptic-curve Diffie–Hellman (ECDH) key agreement;
+
+
 === [0.2.0] - 2022-02-25
 
 - refactoring for `encrypted-pem->secret-key` -> created helper & constants;

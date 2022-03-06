@@ -10,6 +10,8 @@
       SecureRandom
       Security
       Signature)
+    (javax.crypto
+      KeyAgreement)
     (org.bouncycastle.jcajce.provider.asymmetric.ecgost12
       BCECGOST3410_2012PrivateKey
       BCECGOST3410_2012PublicKey)
@@ -25,6 +27,16 @@
 (defn -key-length
   [k]
   (.getFieldSize (.getYCoord (.getG (.getParameters k)))))
+
+
+(defn get-private
+  [^KeyPair kp]
+  (.getPrivate kp))
+
+
+(defn get-public
+  [^KeyPair kp]
+  (.getPublic kp))
 
 
 (defn gen-keypair-256
@@ -162,6 +174,68 @@
         digest (d/digest-2012-512 in :close-streams? close-streams?)]
     (when close-streams? (.close in))
     (verify-digest-512 public-key digest signature)))
+
+
+(defn -ec-curve
+  "Returns EC Curve"
+  [k]
+  (.getCurve (.getParameters k)))
+
+
+(defn -curve-name
+  "Returns EC Curve name as String from given public key."
+  ^String
+  [^BCECGOST3410_2012PublicKey k]
+  (:name (bean (.getParameters k))))
+
+
+(defn random-bytes
+  "Generate random bytes using SecureRandom.
+  Returns byte array `n` bytes length with random data."
+  [n]
+  (let [ba-array (byte-array n)]
+    (.nextBytes (SecureRandom.) ba-array)
+    ba-array))
+
+
+(defn generate-shared-secret-256
+  "Generate shared secret key 256-bit length using Elliptic-curve Diffie–Hellman (ECDH) algorithm.
+  Returns secret key bytes array of 32 bytes length.
+  `my-private-key` and `other-public-key` should be 256-bit length and have the same EC Curve.
+  `random-iv` is not secret and may be transferred via open channels. Recommended length is 16+ random bytes.
+  The only requirement for `random-iv` be always random for any key agreement session.
+  Other party should know the same `random-iv` to generate the same shared secret key."
+  ^bytes
+  [^BCECGOST3410_2012PrivateKey my-private-key ^BCECGOST3410_2012PublicKey other-public-key ^bytes random-iv]
+  (assert (= 256 (-key-length other-public-key)) "Public key should be 256 bit length")
+  (assert (= 256 (-key-length my-private-key)) "Private key should be 256 bit length")
+  (assert (.equals (-ec-curve other-public-key) (-ec-curve my-private-key))
+    (format "Public key has incompatible EC Curve parameters with private key: %s " (-curve-name other-public-key)))
+  (let [ka       (KeyAgreement/getInstance "ECDH" "BC")
+        _        (.init ka my-private-key)
+        _        (.doPhase ka other-public-key true)
+        key-data (.getEncoded (.generateSecret ka "GOST3412-2015"))]
+    (d/hmac-2012-256 random-iv key-data)))
+
+
+(defn generate-shared-secret-512
+  "Generate shared secret key 512-bit length using Elliptic-curve Diffie–Hellman (ECDH) algorithm.
+  Returns secret key bytes array of 64 bytes length.
+  `my-private-key` and `other-public-key` should be 512-bit length and have the same EC Curve.
+  `random-iv` is not secret and may be transferred via open channels. Recommended length is 32+ random bytes.
+  The only requirement for `random-iv` be always random for any key agreement session.
+  Other party should know the same `random-iv` to generate the same shared secret key."
+  ^bytes
+  [^BCECGOST3410_2012PrivateKey my-private-key ^BCECGOST3410_2012PublicKey other-public-key ^bytes random-iv]
+  (assert (= 512 (-key-length other-public-key)) "Public key should be 512 bit length")
+  (assert (= 512 (-key-length my-private-key)) "Private key should be 512 bit length")
+  (assert (.equals (-ec-curve other-public-key) (-ec-curve my-private-key))
+    (format "Public key has incompatible EC Curve parameters with private key: %s " (-curve-name other-public-key)))
+  (let [ka       (KeyAgreement/getInstance "ECDH" "BC")
+        _        (.init ka my-private-key)
+        _        (.doPhase ka other-public-key true)
+        key-data (.getEncoded (.generateSecret ka "GOST3412-2015"))]
+    (d/hmac-2012-512 random-iv key-data)))
 
 
 ;; https://github.com/bcgit/bc-java/blob/bc3b92f1f0e78b82e2584c5fb4b226a13e7f8b3b/core/src/test/java/org/bouncycastle/crypto/test/GOST3410Test.java
