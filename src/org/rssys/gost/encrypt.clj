@@ -9,7 +9,8 @@
       Keyword)
     (java.io
       ByteArrayOutputStream
-      DataInputStream)
+      DataInputStream
+      InputStream)
     (java.security
       SecureRandom
       Security)
@@ -522,14 +523,14 @@
   ([^SecretKeySpec secret-key ^bytes data ^AlgorithmParameterSpec algo-spec]
     (if (or (nil? data) (= 0 (alength data)))
       (throw (ex-info "Empty byte array or nil is not allowed" {}))
-      (let [cipher        (new-encryption-cipher secret-key :cfb-mode algo-spec)
+      (let [cipher           (new-encryption-cipher secret-key :cfb-mode algo-spec)
             algo-name-string (algo-name secret-key)
-            baos-data     (ByteArrayOutputStream.)
-            mac           (cond
-                            (= algo-name-string gost28147) (mac-stream secret-key data (.getSBox algo-spec))
-                            (= algo-name-string gost3412-2015) (mac-stream secret-key data))
-            encrypted-mac (encrypt-bytes cipher mac)
-            result-baos   (ByteArrayOutputStream.)]
+            baos-data        (ByteArrayOutputStream.)
+            mac              (cond
+                               (= algo-name-string gost28147) (mac-stream secret-key data (.getSBox algo-spec))
+                               (= algo-name-string gost3412-2015) (mac-stream secret-key data))
+            encrypted-mac    (encrypt-bytes cipher mac)
+            result-baos      (ByteArrayOutputStream.)]
         (compress-and-encrypt-stream cipher data baos-data)
         (.write result-baos ^bytes (.getIV cipher))
         (.write result-baos ^bytes encrypted-mac)
@@ -564,6 +565,10 @@
     decrypted-data))
 
 
+;; This flag is used in `protect-file` function to control overwrite or not the `output-filename`
+(def ^:dynamic *protect-file-append* false)
+
+
 (defn protect-file
   "Encrypt, compress, calculate MAC for plain data from `input-filename`.
   IV is always random. Encryption mode is CFB.
@@ -586,7 +591,7 @@
           _                (.close in-mac)
           encrypted-mac    (encrypt-bytes cipher mac)
           in               (io/input-stream input-filename)
-          out              (io/output-stream output-filename)]
+          out              (io/output-stream output-filename :append *protect-file-append*)]
       (.write out ^bytes (.getIV cipher))
       (.write out ^bytes encrypted-mac)
       (compress-and-encrypt-stream cipher in out :close-streams false)
@@ -596,14 +601,16 @@
 
 
 (defn unprotect-file
-  "Decrypt, decompress content of `input-filename`, verify MAC for plain data.
+  "Decrypt, decompress content of `input-file`, verify MAC for plain data.
   Save plain data to `output-filename` file (create or overwrite it).
+  `input-file` may be already opened InputStream or ^String file name.
   For 28147-89 default s-box is id-Gost28147-89-CryptoPro-A-ParamSet. For GOST3412-2015 s-box is ignored.
   Returns ^String value of `output-filename` if success or throw Exception if error."
-  [^SecretKeySpec secret-key ^String input-filename ^String output-filename & {:keys [s-box] :or {s-box (byte-array s-box-crypto-pro-a)}}]
-  (when (or (not (.exists (io/file input-filename))) (zero? (.length (io/file input-filename))))
-    (throw (ex-info "File not exist or empty" {:input-file input-filename})))
-  (let [in               (io/input-stream input-filename)
+  [^SecretKeySpec secret-key input-file ^String output-filename & {:keys [s-box] :or {s-box (byte-array s-box-crypto-pro-a)}}]
+  (when-not (instance? InputStream input-file)
+    (when (or (not (.exists (io/file input-file))) (zero? (.length (io/file input-file))))
+      (throw (ex-info "File not exist or empty" {:input-file input-file}))))
+  (let [in               (if (instance? InputStream input-file) input-file (io/input-stream input-file))
         algo-name-string (algo-name secret-key)
         cipher-mode      :cfb-mode
         iv               (byte-array (iv-length-by-algo-mode algo-name-string cipher-mode))

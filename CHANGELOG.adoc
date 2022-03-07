@@ -3,6 +3,7 @@
 === [0.3.0] - unpublished
 
 - add Elliptic-curve Diffie–Hellman (ECDH) key agreement;
+- add encrypt/decrypt data using EC keys and ECIES;
 
 
 === [0.2.0] - 2022-02-25
