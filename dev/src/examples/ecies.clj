@@ -48,12 +48,12 @@
 (def message2 "This is message2.")
 
 
-;; Alice encrypts message2 with one-time secret key 512-bit length derived from
+;; Alice encrypts message2 with one-time secret key 256-bit length derived from
 ;; Bob's public key and Alice's private key and random vector. Random vector is encrypted with ECIES and Bob's public key.
 (def encrypted-data2 (ecies/encrypt-bytes alice-private-key-512 bob-public-key-512 (.getBytes message2)))
 
 
-;; Bob decrypts message2 with one-time secret key 512-bit length derived from
+;; Bob decrypts message2 with one-time secret key 256-bit length derived from
 ;; Bob's private key and Alice's public key and random vector. Random vector is decrypted with ECIES and Bob's private key.
 (String. ^bytes (ecies/decrypt-bytes bob-private-key-512 alice-public-key-512 encrypted-data2))
 
