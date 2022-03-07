@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.rssys</groupId>
   <artifactId>gost</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <name>gost</name>
   <description>Bouncycastle wrapper for Clojure to work with GOST</description>
   <url>https://github.com/redstarssystems/gost</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/redstarssystems/gost</url>
     <connection>scm:git:git://github.com/redstarssystems/gost.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/redstarssystems/gost.git</developerConnection>
-    <tag>v0.2.0</tag>
+    <tag>v0.3.0</tag>
   </scm>
   <dependencies>
     <dependency>
