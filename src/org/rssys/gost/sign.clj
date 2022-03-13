@@ -7,6 +7,8 @@
     (java.security
       KeyPair
       KeyPairGenerator
+      PrivateKey
+      PublicKey
       SecureRandom
       Security
       Signature)
@@ -30,11 +32,13 @@
 
 
 (defn get-private
+  ^PrivateKey
   [^KeyPair kp]
   (.getPrivate kp))
 
 
 (defn get-public
+  ^PublicKey
   [^KeyPair kp]
   (.getPublic kp))
 
@@ -238,4 +242,3 @@
     (d/hmac-2012-512 random-iv key-data)))
 
 
-;; https://github.com/bcgit/bc-java/blob/bc3b92f1f0e78b82e2584c5fb4b226a13e7f8b3b/core/src/test/java/org/bouncycastle/crypto/test/GOST3410Test.java
