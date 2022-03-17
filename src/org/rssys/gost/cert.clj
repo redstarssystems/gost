@@ -1,5 +1,5 @@
 (ns org.rssys.gost.cert
-  "Functions to work with certificates"
+  "X.509 certificates functions"
   (:require
     [clojure.java.io :as io]
     [org.rssys.gost.pem :as pem]
@@ -32,28 +32,29 @@
 
 (defn generate-root-certificate
   "Generate self-signed root CA certificate using given ECGOST3412 keypair.
-  Assume Issuer = Subject for root CA. Appropriate Extensions are set for root CA certificate.
+  Assume Subject = Issuer for root CA. Appropriate Extensions are set for root CA certificate.
   Returns self-signed root CA ^X509CertificateObject.
-  Params (keys in opts):
-    `issuer` (required) - String with issuer info in X.500 distinguished name format.
+  Params:
+  * `keypair` - ^KeyPair for root CA;
+  * `subject` - String with subject info in X.500 distinguished name format.
      Example: \"CN=Red Stars Systems Root CA,OU=www.rssys.org,O=Red Stars Systems,C=RU\"
-
+  Opts:
     `not-before-date` (optional) - ^Date object, by default current date and time
-    `not-after-date` (optional) - ^Date object, by default current date and time + 20 years.
+    `not-after-date` (optional) - ^Date object, by default current date and time + 30 years.
     `serial-number` (optional) - ^BigInteger object (max 20 bytes), by default - current milliseconds since 1970 + random integer.
     "
   ^X509CertificateObject
-  [^KeyPair keypair {:keys [^Date not-before-date ^Date not-after-date ^BigInteger serial-number ^String issuer]}]
-  (assert (string? issuer) "Issuer should be a string")
+  [^KeyPair keypair ^String subject & {:keys [^Date not-before-date ^Date not-after-date ^BigInteger serial-number]}]
+  (assert (string? subject) "Subject should be a string")
   (let [key-length       (s/-key-length (s/get-private keypair))
-        subject          issuer
+        issuer           subject
         algo-name        (condp = key-length
                            256 "GOST3411-2012-256withECGOST3410-2012-256"
                            512 "GOST3411-2012-512withECGOST3410-2012-512")
         calendar         (Calendar/getInstance)
         _                (.set calendar Calendar/MILLISECOND 0) ;; obfuscate millis
         not-before-date' ^Date (or not-before-date (.getTime calendar))
-        not-after-date'  ^Date (or not-after-date (do (.add calendar Calendar/YEAR 20) (.getTime calendar)))
+        not-after-date'  ^Date (or not-after-date (do (.add calendar Calendar/YEAR 30) (.getTime calendar)))
         serial-number'   ^BigInteger (or serial-number (BigInteger. (str (System/currentTimeMillis) (rand-int 10000000))))
         content-signer   (-> (JcaContentSignerBuilder. algo-name) (.setProvider "BC") (.build (s/get-private keypair)))
         cert-builder     (JcaX509v3CertificateBuilder. (X500Name. issuer) serial-number' not-before-date'

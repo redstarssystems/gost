@@ -1,27 +1,31 @@
 (ns examples.cert
   (:require
     [org.rssys.gost.cert :as cert]
-    [org.rssys.gost.sign :as s])
+    [org.rssys.gost.sign :as s]
+    [clojure.java.io :as io])
   (:import
     (java.util
-      Calendar)))
+      Calendar)
+    (java.security KeyStore KeyStore$PrivateKeyEntry KeyStore$PasswordProtection)
+    (java.io ByteArrayOutputStream)
+    (java.security.cert Certificate X509Certificate)))
 
 
 ;; Generate keypair 256-bit length
 (def kp-256 (s/gen-keypair-256))
 
 
-;; Issuer is a String in X.500 distinguished name format
-(def issuer "CN=Red Stars Systems Root CA,OU=www.rssys.org,O=Red Stars Systems,C=RU")
+;; Subject is a String in X.500 distinguished name format
+(def subject "CN=Red Stars Systems Root CA,OU=www.rssys.org,O=Red Stars Systems,C=RU")
 
 
-;; get current date + 20 years
-(def not-after-date (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 20))))
+;; get current date + 30 years
+(def not-after-date (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 30))))
 
 
 ;; Generate self-signed root CA certificate.
 ;; Assume Issuer = Subject for root CA. Appropriate Extensions are set for root CA certificate.
-(def root-cert-256 (cert/generate-root-certificate kp-256 {:issuer issuer :not-after-date not-after-date}))
+(def root-cert-256 (cert/generate-root-certificate kp-256 subject :not-after-date not-after-date))
 
 
 ;; Write X.509 root CA certificate to a file in a binary form using DER format.
