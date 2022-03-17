@@ -16,35 +16,34 @@
 
 
 (deftest ^:unit generate-root-certificate-test
-  (let [issuer "CN=root-ca"]
+  (let [subject "CN=root-ca"]
 
     (testing "Root CA certificate for keypair 256-bit length generated successfully"
       (let [keypair-256 (s/gen-keypair-256)
-            result      (sut/generate-root-certificate keypair-256 {:issuer issuer})]
+            result      (sut/generate-root-certificate keypair-256 subject)]
         (is (instance? X509Certificate result))
         (match (.getType result) "X.509")
         (match (.getSigAlgName result) "GOST3411-2012-256WITHECGOST3410-2012-256")))
 
     (testing "Root CA certificate for keypair 512-bit length generated successfully"
       (let [keypair-512 (s/gen-keypair-512)
-            result      (sut/generate-root-certificate keypair-512 {:issuer issuer})]
+            result      (sut/generate-root-certificate keypair-512 subject)]
         (is (instance? X509Certificate result))
         (match (.getType result) "X.509")
         (match (.getSigAlgName result) "GOST3411-2012-512WITHECGOST3410-2012-512")))
 
     (testing "Root CA certificate with custom parameters generated successfully"
       (let [keypair-256     (s/gen-keypair-256)
-            issuer'         "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+            subject'         "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
             calendar        (Calendar/getInstance)
             _               (.set calendar Calendar/MILLISECOND 0) ;; obfuscate millis
             not-before-date (.getTime calendar)
             serial-number   (BigInteger. (str 12345))
             not-after-date  (do (.add calendar Calendar/YEAR 3) (.getTime calendar))
-            result          (sut/generate-root-certificate keypair-256
-                              {:issuer          issuer'     ;; subject = issuer' for root CA certificate
-                               :not-before-date not-before-date
-                               :not-after-date  not-after-date
-                               :serial-number   serial-number})
+            result          (sut/generate-root-certificate keypair-256 subject'
+                              :not-before-date not-before-date
+                              :not-after-date  not-after-date
+                              :serial-number   serial-number)
             result-subject  (-> result .getSubjectX500Principal .getName)
             result-issuer   (-> result .getIssuerX500Principal .getName)]
         (is (instance? X509Certificate result))
@@ -71,9 +70,9 @@
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          issuer            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
-          cert              (sut/generate-root-certificate keypair-256 {:issuer issuer})
+          cert              (sut/generate-root-certificate keypair-256 subject)
           result            (sut/write-cert-der-file cert out-cert-filename)]
       (match result out-cert-filename)
       (is (pos-int? (.length (io/file out-cert-filename))) "DER file should be not empty")
@@ -86,9 +85,9 @@
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          issuer            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
-          cert              (sut/generate-root-certificate keypair-256 {:issuer issuer})
+          cert              (sut/generate-root-certificate keypair-256 subject)
           result            (sut/write-cert-pem-file cert out-cert-filename)]
       (match result out-cert-filename)
       (is (pos-int? (.length (io/file out-cert-filename))) "PEM file should be not empty")
@@ -103,9 +102,9 @@
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          issuer            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
-          cert              (sut/generate-root-certificate keypair-256 {:issuer issuer})
+          cert              (sut/generate-root-certificate keypair-256 subject)
           _                 (sut/write-cert-der-file cert out-cert-filename)
           result            (sut/read-cert-der-file out-cert-filename)]
       (match result #(instance? X509Certificate %))
@@ -119,9 +118,9 @@
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          issuer            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
-          cert              (sut/generate-root-certificate keypair-256 {:issuer issuer})
+          cert              (sut/generate-root-certificate keypair-256 subject)
           _                 (sut/write-cert-pem-file cert out-cert-filename)
           result            (sut/read-cert-pem-file out-cert-filename)]
       (match result #(instance? X509Certificate %))
