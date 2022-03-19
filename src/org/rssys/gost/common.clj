@@ -4,6 +4,7 @@
     (javax.crypto
       Cipher)
     (org.bouncycastle.util.encoders
+      Base64
       Hex)))
 
 
@@ -26,3 +27,20 @@
   "Convert hex String to bytes array"
   [^String s]
   (Hex/decode s))
+
+
+(defn base64-encode
+  "Convert bytes to Base64 String.
+  Returns ^String."
+  ^String
+  [^bytes data]
+  (String. (Base64/encode data)))
+
+
+(defn base64-decode
+  "Convert Base64 String to data.
+  Returns ^bytes."
+  ^bytes
+  [^String base64-str]
+  (Base64/decode base64-str))
+

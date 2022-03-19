@@ -18,3 +18,15 @@
           string-bytes  (sut/hex-to-bytes hex-string)
           result-string (String. ^bytes string-bytes)]
       (match result-string test-string))))
+
+
+(deftest base64-encode-test
+  (let [s "Hello"
+        result (sut/base64-encode (.getBytes s))]
+    (match result "SGVsbG8=")))
+
+
+(deftest base64-decode-test
+  (let [base64-s "SGVsbG8="
+        result (sut/base64-decode base64-s)]
+    (match (String. result) "Hello")))
