@@ -1,14 +1,20 @@
 (ns examples.cert
   (:require
+    [clojure.java.io :as io]
     [org.rssys.gost.cert :as cert]
-    [org.rssys.gost.sign :as s]
-    [clojure.java.io :as io])
+    [org.rssys.gost.sign :as s])
   (:import
+    (java.io
+      ByteArrayOutputStream)
+    (java.security
+      KeyStore
+      KeyStore$PasswordProtection
+      KeyStore$PrivateKeyEntry)
+    (java.security.cert
+      Certificate
+      X509Certificate)
     (java.util
-      Calendar)
-    (java.security KeyStore KeyStore$PrivateKeyEntry KeyStore$PasswordProtection)
-    (java.io ByteArrayOutputStream)
-    (java.security.cert Certificate X509Certificate)))
+      Calendar)))
 
 
 ;; Generate keypair 256-bit length
