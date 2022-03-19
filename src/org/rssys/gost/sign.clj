@@ -196,6 +196,7 @@
 (defn random-bytes
   "Generate random bytes using SecureRandom.
   Returns byte array `n` bytes length with random data."
+  ^bytes
   [n]
   (let [ba-array (byte-array n)]
     (.nextBytes (SecureRandom.) ba-array)
