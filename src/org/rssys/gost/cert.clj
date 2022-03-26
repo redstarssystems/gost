@@ -5,6 +5,8 @@
     [org.rssys.gost.pem :as pem]
     [org.rssys.gost.sign :as s])
   (:import
+    (java.io
+      ByteArrayInputStream)
     (java.security
       KeyPair
       Security)
@@ -12,6 +14,8 @@
       Calendar
       Date)
     (org.bouncycastle.asn1
+      ASN1InputStream
+      ASN1ObjectIdentifier
       DEROctetString)
     (org.bouncycastle.asn1.pkcs
       PKCSObjectIdentifiers)
@@ -49,7 +53,6 @@
 ;;;;;;;;;;
 ;; KeyUsage flags
 ;;;;;;;;;;
-;; See https://access.redhat.com/documentation/en-us/red_hat_certificate_system/9/html/administration_guide/standard_x.509_v3_certificate_extensions#Discussion-PKIX_Extended_Key_Usage_Extension_Uses
 
 ;; digitalSignature (0) for SSL client certificates, S/MIME signing certificates, and object-signing certificates.
 ;; nonRepudiation (1) for some S/MIME signing certificates and object-signing certificates. (Use of this bit is controversial. )
@@ -109,7 +112,8 @@
 
 
 (defn extension-alternative-names
-  "Returns ^Extension for alternative names (e.g. server domain names: [\"rssys.org\"])."
+  "Returns ^Extension for collection of Strings for alternative names.
+   Example: [\"rssys.org\"]."
   ^Extension
   [alt-names]
   (let [gen-names (map #(GeneralName. GeneralName/dNSName ^String %) alt-names)]
@@ -121,7 +125,8 @@
 
 
 (defn extension-crl
-  "Returns ^Extension for CRL distribution points (e.g. [http://localhost/crl.pem])."
+  "Returns ^Extension for collection of URI for CRL distribution points.
+   Example: [\"http://localhost/crl.pem\"]."
   ^Extension
   [crl-strings]
   (let [crl-dist-points (map #(DistributionPoint.
@@ -162,19 +167,25 @@
 
 
 (defn e-coll->extensions
-  "Convert collection of ^Extension objects to ^Extensions object "
+  "Convert collection of ^Extension objects to ^Extensions object."
   ^Extensions
   [e-coll]
   (Extensions. ^"[Lorg.bouncycastle.asn1.x509.Extension;" (into-array Extension e-coll)))
 
 
 (defn ca-extensions
+  "Returns collection of ^Extension objects for typical CA certificate."
+  ^"[Lorg.bouncycastle.asn1.x509.Extension;"
   []
   [(extension-ca)
    (extension-key-usage typical-ca-key-usage)])
 
 
 (defn webserver-extensions
+  "Returns collection of ^Extension objects for typical web server certificate.
+  Params:
+  * `alternative-names` - ^String collection with alternative name, e.g. [\"www.site.com\"]"
+  ^"[Lorg.bouncycastle.asn1.x509.Extension;"
   [alternative-names]
   [(extension-non-ca)
    (extension-key-usage typical-web-server-key-usage)
@@ -183,6 +194,8 @@
 
 
 (defn user-extensions
+  "Returns collection of ^Extension objects for typical end user certificate."
+  ^"[Lorg.bouncycastle.asn1.x509.Extension;"
   []
   [(extension-non-ca)
    (extension-key-usage typical-user-key-usage)
@@ -244,6 +257,13 @@
 
 
 (defn generate-csr
+  "Generate Certificate Request (CSR) for given `keypair`.
+  Returns ^PKCS10CertificationRequest objects.
+
+  Params:
+  * `keypair` - ^KeyPair object for CSR.
+  * `subject` - ^String in X.500 distinguished name format. Example: \"CN=John Doe,OU=Finance,O=Red Stars Systems,C=RU\",
+  * `extension-coll` - collection of ^Extension objects for CSR."
   ^PKCS10CertificationRequest
   [^KeyPair keypair ^String subject extension-coll]
   (let [key-length     (s/-key-length (s/get-private keypair))
@@ -258,19 +278,67 @@
 
 
 (defn csr->pem-string
+  "Convert ^PKCS10CertificationRequest (CSR) object to PEM string.
+  Returns ^String."
   ^String
   [^PKCS10CertificationRequest csr]
   (pem/write-bytes-to-pem "CERTIFICATE REQUEST" (.getEncoded csr)))
 
 
 (defn pem-string->csr
+  "Convert PEM string into Certificate Request (CSR) object.
+  Returns ^PKCS10CertificationRequest object."
   ^PKCS10CertificationRequest
   [^String pem-csr]
   (PKCS10CertificationRequest. (pem/read-bytes-from-pem pem-csr)))
 
 
+(defn get-cert-extensions
+  "Return collection of ^Extension object from certificate ^X509CertificateObject object."
+  ^"[Lorg.bouncycastle.asn1.x509.Extension;"
+  [^X509CertificateObject cert]
+  (let [extension-builder-fn (fn [^Boolean flag]
+                               (fn [acc ^String i]
+                                 (let [oid-bytes   (.getExtensionValue cert i)
+                                       asn1-stream (ASN1InputStream. (ByteArrayInputStream. oid-bytes))
+                                       der-object  (.readObject asn1-stream)]
+                                   (conj acc (Extension. (ASN1ObjectIdentifier. i)
+                                               flag ^DEROctetString (cast DEROctetString der-object))))))]
+    (flatten
+      (conj
+        (reduce (extension-builder-fn true) [] (.getCriticalExtensionOIDs cert))
+        (reduce (extension-builder-fn false) [] (.getNonCriticalExtensionOIDs cert))))))
+
+
+(defn get-cert-crl
+  "Returns collection of ^DistributionPoint objects for given certificate"
+  ^"[Lorg.bouncycastle.asn1.x509.DistributionPoint;"
+  [^X509CertificateObject cert]
+  (let [oid-bytes   (.getExtensionValue cert "2.5.29.31")
+        asn1-stream (ASN1InputStream. (ByteArrayInputStream. oid-bytes))
+        der-object  (.readObject asn1-stream)
+        octets      (.getOctets (cast DEROctetString der-object))
+        crls (CRLDistPoint/getInstance (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))]
+    (.getDistributionPoints crls)))
+
 
 (defn generate-certificate
+  "Generate a certificate for given Certificate request (CSR).
+  Returns a certificate ^X509CertificateObject signed by CA keypair.
+
+  Params:
+  * `ca-certificate` - ^X509CertificateObject CA certificate,
+  * `ca-keypair` - ^KeyPair CA keypair,
+  * `csr` - ^PKCS10CertificationRequest CSR which should be signed by CA.
+
+  Opts:
+  * `not-before-date` (optional) - ^Date object, by default current date and time.
+  * `not-after-date` (optional) - ^Date object, by default current date and time + 2 years.
+  * `serial-number` (optional) - ^BigInteger object (max 20 bytes),
+     by default - current milliseconds since 1970 + random integer,
+  * `crl-uris` (optional) - collection of ^Strings with CRL URIs (e.g. [\"https://ca.rssys.org/crl.pem\"])
+  * `required-extensions` (optional) - collection of ^Extension objects which should be explicitly set into certificate.
+    If not set, then extensions will be taken from CSR and set into certificate."
   ^X509CertificateObject
   [^X509CertificateObject ca-certificate ^KeyPair ca-keypair ^PKCS10CertificationRequest csr &
    {:keys [^Date not-before-date ^Date not-after-date ^BigInteger serial-number crl-uris
@@ -357,12 +425,3 @@
           result       ^X509CertificateObject (.engineGenerateCertificate x509-factory in)]
       result)))
 
-
-;; Read DER file via `openssl`
-;; docker run --rm -v /Users/mike/projects/gost/c256.crt:/c256.crt -i -t rnix/openssl-gost openssl x509 -in c256.crt -inform der -text
-
-;; Read PEM file via `openssl`
-;; docker run --rm -v /Users/mike/projects/gost/c512.pem:/c512.pem -i -t rnix/openssl-gost openssl x509 -in c512.pem -text
-
-
-;; docker run --rm -v /Users/mike/projects/gost/a.csr:/a.csr -i -t rnix/openssl-gost openssl req -in a.csr -noout -text
