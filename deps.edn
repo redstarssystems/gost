@@ -4,7 +4,7 @@
 
  :paths     ["src" "resources"]
 
- :deps      {org.clojure/clojure {:mvn/version "1.10.3"}
+ :deps      {org.clojure/clojure {:mvn/version "1.11.0"}
              org.bouncycastle/bcprov-jdk15on {:mvn/version "1.70"}
              org.bouncycastle/bcpkix-jdk15on {:mvn/version "1.70"}}
 

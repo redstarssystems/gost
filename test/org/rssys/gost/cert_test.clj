@@ -12,7 +12,18 @@
     (java.security.cert
       X509Certificate)
     (java.util
-      Calendar)))
+      Calendar)
+    (org.bouncycastle.asn1
+      DEROctetString)
+    (org.bouncycastle.asn1.x500
+      X500Name)
+    (org.bouncycastle.asn1.x509
+      Extension
+      GeneralName
+      GeneralNames
+      KeyUsage)
+    (org.bouncycastle.pkcs
+      PKCS10CertificationRequest)))
 
 
 (deftest ^:unit generate-root-certificate-test
@@ -34,7 +45,7 @@
 
     (testing "Root CA certificate with custom parameters generated successfully"
       (let [keypair-256     (s/gen-keypair-256)
-            subject'         "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+            subject'        "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
             calendar        (Calendar/getInstance)
             _               (.set calendar Calendar/MILLISECOND 0) ;; obfuscate millis
             not-before-date (.getTime calendar)
@@ -42,8 +53,8 @@
             not-after-date  (do (.add calendar Calendar/YEAR 3) (.getTime calendar))
             result          (sut/generate-root-certificate keypair-256 subject'
                               :not-before-date not-before-date
-                              :not-after-date  not-after-date
-                              :serial-number   serial-number)
+                              :not-after-date not-after-date
+                              :serial-number serial-number)
             result-subject  (-> result .getSubjectX500Principal .getName)
             result-issuer   (-> result .getIssuerX500Principal .getName)]
         (is (instance? X509Certificate result))
@@ -70,7 +81,7 @@
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject           "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
           cert              (sut/generate-root-certificate keypair-256 subject)
           result            (sut/write-cert-der-file cert out-cert-filename)]
@@ -85,7 +96,7 @@
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject           "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
           cert              (sut/generate-root-certificate keypair-256 subject)
           result            (sut/write-cert-pem-file cert out-cert-filename)]
@@ -102,7 +113,7 @@
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject           "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
           cert              (sut/generate-root-certificate keypair-256 subject)
           _                 (sut/write-cert-der-file cert out-cert-filename)
@@ -118,7 +129,7 @@
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
           _                 (.deleteOnExit out-cert-file)
           out-cert-filename (.getAbsolutePath out-cert-file)
-          subject            "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
+          subject           "C=RU, O=Red Stars Systems, OU=www.rssys.org, CN=Red Stars Systems Root CA"
           keypair-256       (s/gen-keypair-256)
           cert              (sut/generate-root-certificate keypair-256 subject)
           _                 (sut/write-cert-pem-file cert out-cert-filename)
@@ -127,3 +138,27 @@
       (is (= cert result) "Certificates are equal")
       (.delete (io/file out-cert-filename)))))
 
+
+(deftest ^:unit generate-csr-test
+
+  (testing "Generate PKCS10 CSR is successful"
+    (let [keypair (s/gen-keypair-256)
+          subject "CN=webserver"
+          result  (sut/generate-csr keypair subject [])]
+      (is (instance? PKCS10CertificationRequest result))
+      (match (.toString (.getSubject result)) subject)))
+
+  (testing "Generate PKCS10 CSR with custom attributes is successful"
+    (let [keypair    (s/gen-keypair-256)
+          subject    "CN=webserver"
+          extensions [(Extension. Extension/subjectAlternativeName
+                        false
+                        (DEROctetString. (GeneralNames. (GeneralName. (X500Name. "cn=alt-web")))))
+                      (Extension. Extension/keyUsage true
+                        (DEROctetString.
+                          (KeyUsage. (bit-or KeyUsage/keyCertSign KeyUsage/cRLSign
+                                       KeyUsage/digitalSignature))))]
+
+          result     (sut/generate-csr keypair subject extensions)]
+      (is (instance? PKCS10CertificationRequest result))
+      (match (.toString (.getSubject result)) subject))))
