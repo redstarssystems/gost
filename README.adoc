@@ -769,7 +769,9 @@ This is high-level functions.
     {:not-after-date      user-not-after-date
      :crl-uris            ["https://ca.rssys.org/crl.pem"]
      :required-extensions (cert/e-coll->extensions
-                            (cert/user-extensions))}))
+                            (conj
+                              (cert/user-extensions)
+                              (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])))}))
 
 
 ;; Write X.509 user certificate to a file in a binary form using DER format.
@@ -799,12 +801,21 @@ This is high-level functions.
 (= restored-pem-root-cert-256 root-ca-cert)                ;; => true
 
 
-;; Get collection of ^Extension object from certificate
+;; Get collection of ^Extension objects from certificate
 (cert/get-cert-extensions user-cert)
 
 
 ;; Get collection of ^DistributionPoint objects for given certificate
-(cert/get-cert-crl user-cert)
+(cert/get-cert-crl user-cert')
+
+
+;; Get collection of ^AccessDescription objects for given certificate (OCSP access points, etc.).
+(def ocsp-coll (cert/get-cert-authority-access-info user-cert'))
+
+
+;; Get first OCSP URL from collection
+(.toString (.getName ^org.bouncycastle.asn1.x509.GeneralName (.getAccessLocation (first ocsp-coll))))
+
 
 ----
 

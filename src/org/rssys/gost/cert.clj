@@ -22,6 +22,8 @@
     (org.bouncycastle.asn1.x500
       X500Name)
     (org.bouncycastle.asn1.x509
+      AccessDescription
+      AuthorityInformationAccess
       BasicConstraints
       CRLDistPoint
       DistributionPoint
@@ -32,7 +34,8 @@
       GeneralName
       GeneralNames
       KeyPurposeId
-      KeyUsage)
+      KeyUsage
+      X509ObjectIdentifiers)
     (org.bouncycastle.cert.jcajce
       JcaX509CertificateConverter
       JcaX509ExtensionUtils
@@ -142,6 +145,19 @@
           (into-array DistributionPoint
             crl-dist-points))))))
 
+
+(defn extension-ocsp-access-info
+  "Returns ^Extension for collection of URI for OCSP of authority access information.
+   Example: [\"http://localhost/ocsp\"]."
+  ^Extension
+  [ocsp-uris]
+  (let [aai-points (map #(AccessDescription.
+                           X509ObjectIdentifiers/ocspAccessMethod
+                           (GeneralName. GeneralName/uniformResourceIdentifier ^String %))
+                     ocsp-uris)
+        aia (AuthorityInformationAccess. ^"[Lorg.bouncycastle.asn1.x509.AccessDescription;"
+              (into-array AccessDescription aai-points))]
+    (Extension. Extension/authorityInfoAccess false (.getEncoded aia))))
 
 
 (defn extension-key-usage
@@ -311,15 +327,31 @@
 
 
 (defn get-cert-crl
-  "Returns collection of ^DistributionPoint objects for given certificate"
+  "Returns collection of ^DistributionPoint objects for given certificate."
   ^"[Lorg.bouncycastle.asn1.x509.DistributionPoint;"
   [^X509CertificateObject cert]
-  (let [oid-bytes   (.getExtensionValue cert "2.5.29.31")
-        asn1-stream (ASN1InputStream. (ByteArrayInputStream. oid-bytes))
-        der-object  (.readObject asn1-stream)
-        octets      (.getOctets (cast DEROctetString der-object))
-        crls (CRLDistPoint/getInstance (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))]
-    (.getDistributionPoints crls)))
+  (if-let [oid-bytes (.getExtensionValue cert (.getId Extension/cRLDistributionPoints))]
+    (let [asn1-stream (ASN1InputStream. (ByteArrayInputStream. oid-bytes))
+          der-object  (.readObject asn1-stream)
+          octets      (.getOctets (cast DEROctetString der-object))
+          crls        (CRLDistPoint/getInstance (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))]
+      (.getDistributionPoints crls))
+    []))
+
+
+(defn get-cert-authority-access-info
+  "Returns collection of ^AccessDescription objects for given certificate (OCSP etc.)."
+  ^"[Lorg.bouncycastle.asn1.x509.AccessDescription;"
+  [^X509CertificateObject cert]
+  (if-let [oid-bytes (.getExtensionValue cert (.getId Extension/authorityInfoAccess))]
+    (let [asn1-stream (ASN1InputStream. (ByteArrayInputStream. oid-bytes))
+          der-object  (.readObject asn1-stream)
+          octets      (.getOctets (cast DEROctetString der-object))
+          auth-info   (AuthorityInformationAccess/getInstance
+                        (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))]
+      (.getAccessDescriptions auth-info))
+    []))
+
 
 
 (defn generate-certificate
