@@ -30,7 +30,7 @@
 (def m4 "This is message, length=32 bytes")
 
 
-(deftest ^:unit digest-stream-test
+(deftest digest-stream-test
 
   ;; See https://ru.wikipedia.org/wiki/ГОСТ_Р_34.11-94
   (testing "GOST3411-94 engine with test S-box params produces correct digest value"
@@ -91,7 +91,7 @@
       (match m4 (slurp input)))))
 
 
-(deftest ^:unit hmac-stream-test
+(deftest hmac-stream-test
 
   (testing "HMAC for the same data and the same secret key are always the same"
     (let [secret-key (byte-array [0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1])

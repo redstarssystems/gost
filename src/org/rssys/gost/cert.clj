@@ -200,7 +200,8 @@
 (defn webserver-extensions
   "Returns collection of ^Extension objects for typical web server certificate.
   Params:
-  * `alternative-names` - ^String collection with alternative name, e.g. [\"www.site.com\"]"
+  * `alternative-names` - ^String collection with alternative name, e.g. [\"www.site.com\"],
+  typically domain names, should not be empty."
   ^"[Lorg.bouncycastle.asn1.x509.Extension;"
   [alternative-names]
   [(extension-non-ca)
@@ -351,7 +352,6 @@
                         (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))]
       (.getAccessDescriptions auth-info))
     []))
-
 
 
 (defn generate-certificate

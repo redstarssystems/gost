@@ -23,8 +23,8 @@ The library provides:
 - signature using _GOST3410-2012_ 256 and 512 bit key length;
 - key generation: secret keys, public/private keys, password based keys;
 - compression + encryption + mac / decryption + check mac + decompression;
-- encrypting with EC public keys / decrypting with EC private keys;
-- save/load keys (secret, private, public) to PEM format;
+- encrypting with GOST EC public keys / decrypting with EC private keys;
+- save/load GOST keys (secret, private, public) to PEM format;
 - X.509 GOST certificates: generate, sign, revoke, save/load. Work with CRL and TLS using GOST.
 
 toc::[]

@@ -15,7 +15,7 @@
 
 
 
-(deftest ^:unit private-key->pem-test
+(deftest private-key->pem-test
 
   (let [kp-256               (s/gen-keypair-256)
         private-key-256      (.getPrivate kp-256)
@@ -47,7 +47,7 @@
       (is result "Signature is correct"))))
 
 
-(deftest ^:unit private-key->encrypted-pem-test
+(deftest private-key->encrypted-pem-test
   (testing "Convert private key to encrypted PEM is successful"
     (let [password    "123456"
           private-key (p/pem->private-key (slurp "test/data/test-private-key.pem"))
@@ -55,7 +55,7 @@
       (is (string/includes? pem-string "ENCRYPTED PRIVATE")))))
 
 
-(deftest ^:unit encrypted-pem->private-key-test
+(deftest encrypted-pem->private-key-test
 
   (testing "Open encrypted PEM file with private key is successful"
     (let [input-file  "test/data/test-encrypted-private-key.pem"
@@ -64,7 +64,7 @@
       (is (instance? BCECGOST3410_2012PrivateKey private-key)))))
 
 
-(deftest ^:unit write-bytes-to-pem-test
+(deftest write-bytes-to-pem-test
   (testing "Converting byte array to PEM string is successful"
     (let [data       (.getBytes "Hello, world!")
           data-type  "PLAIN TEXT"
@@ -72,7 +72,7 @@
       (is (string/includes? pem-result data-type)))))
 
 
-(deftest ^:unit write-struct-to-pem-test
+(deftest write-struct-to-pem-test
   (testing "Writing structured data to PEM string is successful"
     (let [data           (.getBytes "Hello")
           headers        {:status "unencrypted" :date "01-01-2022"}
@@ -82,7 +82,7 @@
       (is (string/starts-with? pem-result correct-result)))))
 
 
-(deftest ^:unit read-struct-from-pem-test
+(deftest read-struct-from-pem-test
   (testing "Reading structured data from PEM string is successful"
     (let [data      (into [] (.getBytes "Hello"))
           headers   {"status" "unencrypted" "date" "01-01-2022"}
@@ -94,21 +94,21 @@
       (match (into [] (:data result)) data))))
 
 
-(deftest ^:unit read-bytes-from-pem-test
+(deftest read-bytes-from-pem-test
   (testing "Converting PEM string to byte array is successful"
     (let [data   "-----BEGIN PLAIN TEXT-----\nSGVsbG8sIHdvcmxkIQ==\n-----END PLAIN TEXT-----"
           result (p/read-bytes-from-pem data)]
       (match (String. result) "Hello, world!"))))
 
 
-(deftest ^:unit secret-key->pem-test
+(deftest secret-key->pem-test
   (testing "Converting SecretKeySpec to PEM string is successful"
     (let [secret-key (e/generate-secret-key)
           pem-result (p/secret-key->pem secret-key)]
       (is (string/includes? pem-result "SECRET KEY")))))
 
 
-(deftest ^:unit pem->secret-key-test
+(deftest pem->secret-key-test
   (testing "Converting PEM string to SecretKeySpec is successful"
     (let [data   "-----BEGIN SECRET KEY-----\nHVyE+5SDlYxLhzF5dZ0abz/zr+oeGsdi2qZcOVc4ZOI=\n-----END SECRET KEY-----\n"
           result (p/pem->secret-key data)]
@@ -116,14 +116,14 @@
       (match (alength (.getEncoded result)) 32))))
 
 
-(deftest ^:unit secret-key->encrypted-pem-test
+(deftest secret-key->encrypted-pem-test
   (testing "Converting SecretKeySpec to encrypted PEM string is successful"
     (let [secret-key (e/generate-secret-key)
           pem-result (p/secret-key->encrypted-pem secret-key "123456")]
       (is (string/includes? pem-result "ENCRYPTED SECRET KEY")))))
 
 
-(deftest ^:unit encrypted-pem->secret-key-test
+(deftest encrypted-pem->secret-key-test
   (testing "Converting encrypted PEM string to SecretKeySpec is successful"
     (let [data          (slurp "test/data/test-secret-key.pem")
           bad-password  "1234567"

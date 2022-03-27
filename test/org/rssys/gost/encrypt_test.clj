@@ -59,7 +59,7 @@
 (def test-mac-gost28147-big-txt "f470cdee")
 
 
-(deftest ^:unit generate-secret-key-test
+(deftest generate-secret-key-test
 
   (testing "Generate secret key for GOST3412-2015"
     (let [secret-key (sut/generate-secret-key)]
@@ -76,7 +76,7 @@
           (sut/generate-secret-key "wrong-algo-name")))))
 
 
-(deftest ^:unit secret-key->byte-array-test
+(deftest secret-key->byte-array-test
   (testing "Converting SecretKey to plain bytes array is successful"
     (let [secret-key (sut/generate-secret-key)
           result     (sut/secret-key->byte-array secret-key)]
@@ -84,7 +84,7 @@
       (is (bytes? result)))))
 
 
-(deftest ^:unit byte-array->secret-key-test
+(deftest byte-array->secret-key-test
 
   (testing "Converting plain bytes array to SecretKey for GOST3412-2015 is successful"
     (let [secret-bytes (byte-array (range sut/secret-key-length-bytes))
@@ -110,7 +110,7 @@
             (sut/byte-array->secret-key secret-bytes "GOST3412-2015"))))))
 
 
-(deftest ^:unit generate-secret-bytes-from-password-test
+(deftest generate-secret-bytes-from-password-test
 
   (testing "Generating secret key bytes from good password is successful"
     (let [good-password "qMkaS3^%&%@lOIOJN7h7sbrgojv"
@@ -151,7 +151,7 @@
             (sut/generate-secret-bytes-from-password weak-password 100))))))
 
 
-(deftest ^:unit init-cipher-mode-test
+(deftest init-cipher-mode-test
   (testing "Cipher for given mode is created successfully"
     (let [cipher1 (sut/init-cipher-mode sut/gost28147 :cfb-mode)
           cipher2 (sut/init-cipher-mode sut/gost28147 :ctr-mode)
@@ -170,7 +170,7 @@
       (is (every? #(string/includes? (sut/algo-name %) "CBC") [cipher3 cipher6])))))
 
 
-(deftest ^:unit new-iv-gost28147-test
+(deftest new-iv-gost28147-test
   (testing "Generation of init vector for GOST28147-89 is successful"
     (let [iv (sut/new-iv-8)]
       (is (bytes? iv))
@@ -178,7 +178,7 @@
       (is (> (sut/count-unique iv) 4)))))
 
 
-(deftest ^:unit new-iv-gost3412-2015-test
+(deftest new-iv-gost3412-2015-test
   (testing "Generation of init vector for GOST3412-2015 is successful"
     (let [iv (sut/new-iv-16)]
       (is (bytes? iv))
@@ -186,7 +186,7 @@
       (is (> (sut/count-unique iv) 8)))))
 
 
-(deftest ^:unit new-iv-test
+(deftest new-iv-test
   (testing "Init vector is generated with appropriate length for algorithm"
     (let [iv1 (sut/new-iv sut/gost28147 :cfb-mode)
           iv2 (sut/new-iv sut/gost3412-2015 :cfb-mode)
@@ -206,7 +206,7 @@
       (match (alength iv6) sut/iv-length-16))))
 
 
-(deftest ^:unit new-encryption-cipher-test
+(deftest new-encryption-cipher-test
 
   (testing "Encryption cipher in CFB mode and init vector for GOST3412-2015 is created successfully"
     (let [secret-key (sut/generate-secret-key sut/gost3412-2015)
@@ -251,7 +251,7 @@
       (is (string/includes? (sut/algo-name cipher) "CBC")))))
 
 
-(deftest ^:unit new-decryption-cipher-test
+(deftest new-decryption-cipher-test
   (testing "Decryption cipher in CFB mode and init vector for GOST3412-2015 is created successfully"
     (let [secret-key (sut/generate-secret-key sut/gost3412-2015)
           iv         test-iv-16
@@ -297,7 +297,7 @@
       (is (string/includes? (sut/algo-name cipher) "CBC")))))
 
 
-(deftest ^:unit init-gost-named-params-test
+(deftest init-gost-named-params-test
   (testing "Init algorithm using given init vector and S-Box named parameters is successful"
     (let [iv          (sut/new-iv sut/gost28147 :cfb-mode)
           algo-params (sut/init-gost-named-params sut/gost28147 iv "E-A")]
@@ -306,7 +306,7 @@
       (match (into [] (.getIV algo-params)) (into [] iv)))))
 
 
-(deftest ^:unit init-gost-oid-params-test
+(deftest init-gost-oid-params-test
   (testing "Init algorithm using given init vector and S-Box OID parameters is successful"
     (let [iv          (sut/new-iv sut/gost28147 :cfb-mode)
           algo-params (sut/init-gost-oid-params sut/gost28147 iv (ASN1ObjectIdentifier. "1.2.643.2.2.31.1"))]
@@ -315,7 +315,7 @@
       (match (into [] (.getIV algo-params)) (into [] iv)))))
 
 
-(deftest ^:unit init-gost-sbox-binary-params-test
+(deftest init-gost-sbox-binary-params-test
   (testing "Init algorithm using given init vector and S-Box binary array parameters is successful"
     (let [iv          (sut/new-iv sut/gost28147 :cfb-mode)
           algo-params (sut/init-gost-sbox-binary-params sut/gost28147 iv (byte-array sut/s-box-crypto-pro-a))]
@@ -324,7 +324,7 @@
       (match (into [] (.getIV algo-params)) (into [] iv)))))
 
 
-(deftest ^:unit encrypt-bytes-test
+(deftest encrypt-bytes-test
 
   (testing "GOST 28147-89 encryption in CFB mode is successful"
     (let [secret-key        (sut/byte-array->secret-key test-secret-key sut/gost28147)
@@ -384,7 +384,7 @@
       (match (common/bytes-to-hex encrypted-bytes50) test-gost3412-2015-encrypted-bytes50-cbc))))
 
 
-(deftest ^:unit decrypt-bytes-test
+(deftest decrypt-bytes-test
   (testing "GOST 28147-89 decryption in CFB mode is successful"
     (let [secret-key        (sut/byte-array->secret-key test-secret-key sut/gost28147)
           iv                test-iv-8
@@ -445,7 +445,7 @@
 
 
 
-(deftest ^:unit compress-bytes-test
+(deftest compress-bytes-test
   (testing "Compress bytes array is successful"
     (let [plain-string     (apply str (repeat 30 "A"))
           compressed-bytes (sut/compress-bytes (.getBytes plain-string))]
@@ -453,7 +453,7 @@
       (is (< (count compressed-bytes) (.length plain-string))))))
 
 
-(deftest ^:unit decompress-bytes-test
+(deftest decompress-bytes-test
   (testing "Decompress bytes array is successful"
     (let [plain-string            (apply str (repeat 30 "A"))
           compressed-string-bytes (sut/compress-bytes (.getBytes plain-string))
@@ -476,7 +476,7 @@
     (.toByteArray out)))
 
 
-(deftest ^:unit encrypt-stream-test
+(deftest encrypt-stream-test
 
   (testing "GOST 28147-89 CFB mode encryption of byte array as a stream to output stream is successful. "
     (let [secret-key      (sut/byte-array->secret-key test-secret-key sut/gost28147)
@@ -503,7 +503,7 @@
       (match (common/bytes-to-hex encrypted-bytes) test-gost3412-2015-encrypted-bytes32-cfb))))
 
 
-(deftest ^:unit decrypt-stream-test
+(deftest decrypt-stream-test
 
   (testing "GOST 28147-89 CFB mode decryption of byte array as a stream to output stream is successful. "
     (let [secret-key      (sut/byte-array->secret-key test-secret-key sut/gost28147)
@@ -531,7 +531,7 @@
       (match plain-bytes plain-32))))
 
 
-(deftest ^:unit compress-stream-test
+(deftest compress-stream-test
   (testing "Compress bytes array as input stream to output stream is successful"
     (let [plain-string     (apply str (repeat 30 "A"))
           output-file      (File/createTempFile "zip-" ".txt")
@@ -555,7 +555,7 @@
       (is (< (count compressed-bytes) (.length plain-string))))))
 
 
-(deftest ^:unit decompress-stream-test
+(deftest decompress-stream-test
   (testing "Decompress bytes array as input stream to output stream is successful"
     (let [plain-string        (apply str (repeat 30 "A"))
           compressed-bytes    (sut/compress-bytes (.getBytes plain-string))
@@ -579,7 +579,7 @@
       (match decompressed-string plain-string))))
 
 
-(deftest ^:unit compress-and-encrypt-stream-test
+(deftest compress-and-encrypt-stream-test
   (testing "Data stream is compressed and then encrypted with GOST 28147-89 in CFB mode"
     (let [n                              300
           plain-string                   (apply str (repeat n "A"))
@@ -628,7 +628,7 @@
       (match (count uncompressed-bytes) n))))
 
 
-(deftest ^:unit decrypt-and-decompress-stream-test
+(deftest decrypt-and-decompress-stream-test
   (testing "Data stream is decrypted and then decompressed with GOST 28147-89 in CFB mode"
     (let [plain-file   (io/file "test/data/big.txt")
           ;; encrypt and compress
@@ -671,7 +671,7 @@
       (is (= (.length plain-file) (.length ^File output-file2))))))
 
 
-(deftest ^:unit mac-3412-stream-test
+(deftest mac-3412-stream-test
 
   (testing "Calculate MAC for input stream using GOST 3412-2015 is successful"
     (let [secret-key  (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
@@ -681,7 +681,7 @@
       (match test-mac-gost3412-2015-plain-50 (common/bytes-to-hex mac-bytes50)))))
 
 
-(deftest ^:unit mac-28147-stream-test
+(deftest mac-28147-stream-test
   (testing "Calculate MAC for input stream using GOST 28147-89 is successful"
     (let [secret-key  (sut/byte-array->secret-key test-secret-key sut/gost28147)
           mac-bytes32 (sut/mac-28147-stream secret-key (.getBytes plain-32))
@@ -690,7 +690,7 @@
       (match test-mac-gost28147-plain-50 (common/bytes-to-hex mac-bytes50)))))
 
 
-(deftest ^:unit mac-stream-test
+(deftest mac-stream-test
 
   (testing "MAC in stream mode is calculated successful"
     (let [secret-key-2015 (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
@@ -701,7 +701,7 @@
       (match test-mac-gost28147-big-txt (common/bytes-to-hex mac-big-89)))))
 
 
-(deftest ^:unit iv-length-by-algo-mode-test
+(deftest iv-length-by-algo-mode-test
   (testing "Check IV length in tests"
     (let [result1 (sut/iv-length-by-algo-mode "" :ctr-mode)
           result2 (sut/iv-length-by-algo-mode sut/gost28147 :cbc-mode)
@@ -715,7 +715,7 @@
       (match result5 16))))
 
 
-(deftest ^:unit protect-bytes-test
+(deftest protect-bytes-test
   (testing "Protect/unprotect success for plain-32"
     (let [plain-data            plain-32
           secret-key-2015       (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)
@@ -751,7 +751,7 @@
 
 
 
-(deftest ^:unit unprotect-bytes-test
+(deftest unprotect-bytes-test
 
   (testing "Protect/unprotect fails if mac is corrupted"
     (let [plain-data          plain-50
@@ -770,7 +770,7 @@
             (sut/unprotect-bytes secret-key-89 corrupted-data-89))))))
 
 
-(deftest ^:unit protect-file-test
+(deftest protect-file-test
 
   (testing "Protect/unprotect-file success for a big file"
     (let [input-filename           "test/data/big.txt"
@@ -807,7 +807,7 @@
 
 
 
-(deftest ^:unit unprotect-file-test
+(deftest unprotect-file-test
 
   (testing "Protected manually file can open by unprotect functions"
     (let [secret-key-2015              (sut/byte-array->secret-key test-secret-key sut/gost3412-2015)

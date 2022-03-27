@@ -7,7 +7,7 @@
     [org.rssys.gost.pem :as p]))
 
 
-(deftest ^:unit sign-message-test
+(deftest sign-message-test
   (testing "Armored message produced successfully"
     (let [private-key-256  (p/pem->private-key (slurp "test/data/test-private-key-256.pem"))
           plain-32-message (slurp "test/data/plain32.txt")
@@ -39,7 +39,7 @@
 
 
 
-(deftest ^:unit verify-message-test
+(deftest verify-message-test
 
   (testing "Verification tests for armored message"
     (let [public-key-256   (p/pem->public-key (slurp "test/data/test-public-key-256.pem"))

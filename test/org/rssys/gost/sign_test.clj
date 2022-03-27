@@ -15,7 +15,7 @@
 (def message "This is a message.")
 
 
-(deftest ^:unit gen-keypair-256-test
+(deftest gen-keypair-256-test
   (testing "GOST 3410-2012 keypair 256-bit length generated successfully"
     (let [kp          (sut/gen-keypair-256)
           public-key  (.getPublic kp)
@@ -28,7 +28,7 @@
       (match key-length 256))))
 
 
-(deftest ^:unit gen-keypair-512-test
+(deftest gen-keypair-512-test
   (testing "GOST 3410-2012 keypair 512-bit length generated successfully"
     (let [kp          (sut/gen-keypair-512)
           public-key  (.getPublic kp)
@@ -41,7 +41,7 @@
       (match key-length 512))))
 
 
-(deftest ^:unit sign-digest-256-test
+(deftest sign-digest-256-test
 
   (testing "Signature for a wrong hash size is not allowed"
     (let [kp                  (sut/gen-keypair-256)
@@ -65,7 +65,7 @@
       (match (alength signature) 64))))
 
 
-(deftest ^:unit sign-digest-512-test
+(deftest sign-digest-512-test
 
   (testing "Signature for a wrong hash size is not allowed"
     (let [kp                  (sut/gen-keypair-512)
@@ -89,7 +89,7 @@
       (match (alength signature) 128))))
 
 
-(deftest ^:unit verify-digest-256-test
+(deftest verify-digest-256-test
 
   (testing "Signature for good digest verified successfully"
     (let [kp          (sut/gen-keypair-256)
@@ -127,7 +127,7 @@
             (sut/verify-digest-256 public-key digest signature))))))
 
 
-(deftest ^:unit verify-digest-512-test
+(deftest verify-digest-512-test
 
   (testing "Signature for good digest verified successfully"
     (let [kp          (sut/gen-keypair-512)
@@ -165,7 +165,7 @@
             (sut/verify-digest-512 public-key digest signature))))))
 
 
-(deftest ^:unit sign-256-test
+(deftest sign-256-test
   (testing "Signature for byte array has correct size"
     (let [kp          (sut/gen-keypair-256)
           private-key (.getPrivate kp)
@@ -180,7 +180,7 @@
       (match (alength signature) 64))))
 
 
-(deftest ^:unit sign-512-test
+(deftest sign-512-test
 
   (testing "Signature for byte array has correct size"
     (let [kp          (sut/gen-keypair-512)
@@ -196,7 +196,7 @@
       (match (alength signature) 128))))
 
 
-(deftest ^:unit verify-256-test
+(deftest verify-256-test
 
   (testing "Signature verification for byte array is successful"
     (let [kp          (sut/gen-keypair-256)
@@ -216,7 +216,7 @@
       (match result true))))
 
 
-(deftest ^:unit verify-512-test
+(deftest verify-512-test
 
   (testing "Signature verification for byte array is successful"
     (let [kp          (sut/gen-keypair-512)
@@ -236,7 +236,7 @@
       (match result true))))
 
 
-(deftest ^:unit generate-shared-secret-256-test
+(deftest generate-shared-secret-256-test
   (testing "Generated shared secret key is generated successfully"
     (let [kp           (sut/gen-keypair-256)
           private-key  (.getPrivate kp)
@@ -279,7 +279,7 @@
             (sut/generate-shared-secret-256 wrong-private-key public-key2 random-iv))))))
 
 
-(deftest ^:unit generate-shared-secret-512-test
+(deftest generate-shared-secret-512-test
   (testing "Generated shared secret key is generated successfully"
     (let [kp           (sut/gen-keypair-512)
           private-key  (.getPrivate kp)

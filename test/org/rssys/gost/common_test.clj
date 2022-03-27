@@ -5,12 +5,12 @@
     [org.rssys.gost.common :as sut]))
 
 
-(deftest ^:unit jce-unlimited?-test
+(deftest jce-unlimited?-test
   (testing "JDK has unlimited cryptography strength"
     (is (sut/jce-unlimited?))))
 
 
-(deftest ^:unit bytes-to-hex-test
+(deftest bytes-to-hex-test
   (testing "Encoding / decoding hex to bytes works as expected"
     (let [test-string   "I am a test string! !@#$$%&*!*"
           test-bytes    (.getBytes test-string)

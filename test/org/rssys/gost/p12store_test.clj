@@ -21,7 +21,7 @@
       SecretKeySpec)))
 
 
-(deftest ^:unit create-keystore-test
+(deftest create-keystore-test
 
   (testing "KeyStore PKCS12 created successfully"
     (let [result (sut/create-keystore)]
@@ -30,7 +30,7 @@
 
 
 
-(deftest ^:unit write-keystore-test
+(deftest write-keystore-test
   (testing "KeyStore PKCS12 is written successfully"
     (let [password    "Secret13"
           ks-file     (File/createTempFile "keystore" ".p12")
@@ -44,7 +44,7 @@
 
 
 
-(deftest ^:unit read-keystore-test
+(deftest read-keystore-test
   (testing "KeyStore PKCS12 read successful"
     (let [password    "Secret13"
           ks-filename "test/data/ks.p12"
@@ -52,7 +52,7 @@
       (is (instance? KeyStore ks)))))
 
 
-(deftest ^:unit list-aliases-test
+(deftest list-aliases-test
   (testing "KeyStore PKCS12 list successful"
     (let [password    "Secret13"
           ks-filename "test/data/ks.p12"
@@ -61,7 +61,7 @@
       (match result ["privatekey" "secretkey"]))))
 
 
-(deftest ^:unit get-private-key-test
+(deftest get-private-key-test
 
   (testing "Read private key from KeyStore PKCS12 is successful"
     (let [password    "Secret13"
@@ -78,7 +78,7 @@
             (sut/get-private-key ks "secretkey"))))))
 
 
-(deftest ^:unit get-secret-key-test
+(deftest get-secret-key-test
 
   (testing "Read secret key from KeyStore PKCS12 is successful"
     (let [password    "Secret13"
@@ -97,7 +97,7 @@
             (sut/get-secret-key ks "privatekey"))))))
 
 
-(deftest ^:unit get-certificate-test
+(deftest get-certificate-test
 
   (testing "Read certificate entry from KeyStore PKCS12 is successful"
     (let [password    "Secret13"
@@ -114,7 +114,7 @@
             (sut/get-certificate ks "secretkey"))))))
 
 
-(deftest ^:unit set-private-key-test
+(deftest set-private-key-test
   (let [kp-256      (s/gen-keypair-256)
         private-256 (s/get-private kp-256)
         cert        (cert/generate-root-certificate kp-256 "cn=root-ca")
@@ -145,7 +145,7 @@
           "Get key with wrong password for key entry should rise an Exception")))))
 
 
-(deftest ^:unit set-secret-key-test
+(deftest set-secret-key-test
 
   (testing "Set secret key key is successful"
     (let [ks         (sut/create-keystore)
@@ -167,7 +167,7 @@
         "Get key with wrong password for key entry should rise an Exception"))))
 
 
-(deftest ^:unit  set-certificate-test
+(deftest  set-certificate-test
   (let [ks    (sut/create-keystore)
         cert  (cert/read-cert-pem-file "test/data/c512.pem")
         alias "cert1"]

@@ -43,7 +43,7 @@
 (def bob-public-key-512 (s/get-public bob-kp-512))
 
 
-(deftest ^:unit encrypt-bytes-test
+(deftest encrypt-bytes-test
   (let [encrypted-data-256 (sut/encrypt-bytes alice-private-key bob-public-key (.getBytes message))
         encrypted-data-512 (sut/encrypt-bytes alice-private-key-512 bob-public-key-512 (.getBytes message))]
     (is (> (alength encrypted-data-256) 117) "Encrypted data has length more than encrypted random-iv")
@@ -51,7 +51,7 @@
 
 
 
-(deftest ^:unit decrypt-bytes-test
+(deftest decrypt-bytes-test
   (testing "Data is decrypted successfully"
     (let [encrypted-data-256 (sut/encrypt-bytes alice-private-key bob-public-key (.getBytes big-text))
           encrypted-data-512 (sut/encrypt-bytes alice-private-key-512 bob-public-key-512 (.getBytes big-text))
@@ -71,7 +71,7 @@
           (sut/decrypt-bytes bob-private-key alice-public-key (byte-array [2 0 1]))))))
 
 
-(deftest ^:unit encrypt-file-test
+(deftest encrypt-file-test
 
   (testing "Encrypt/decrypt-file success for a big file"
     (let [input-filename          "test/data/big.txt"

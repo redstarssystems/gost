@@ -8,25 +8,33 @@
     [org.rssys.gost.sign :as s])
   (:import
     (java.io
+      ByteArrayInputStream
       File)
     (java.security.cert
       X509Certificate)
     (java.util
       Calendar)
     (org.bouncycastle.asn1
+      ASN1InputStream
       DEROctetString)
     (org.bouncycastle.asn1.x500
       X500Name)
     (org.bouncycastle.asn1.x509
+      AccessDescription
+      CRLDistPoint
+      DistributionPoint
       Extension
+      Extensions
       GeneralName
       GeneralNames
       KeyUsage)
+    (org.bouncycastle.jcajce.provider.asymmetric.x509
+      X509CertificateObject)
     (org.bouncycastle.pkcs
       PKCS10CertificationRequest)))
 
 
-(deftest ^:unit generate-root-certificate-test
+(deftest generate-root-certificate-test
   (let [subject "CN=root-ca"]
 
     (testing "Root CA certificate for keypair 256-bit length generated successfully"
@@ -75,7 +83,7 @@
         (match (.getNotAfter result) not-after-date)))))
 
 
-(deftest ^:unit write-cert-der-file-test
+(deftest write-cert-der-file-test
 
   (testing "Write certificate in DER format"
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
@@ -90,7 +98,7 @@
       (.delete (io/file out-cert-filename)))))
 
 
-(deftest ^:unit write-cert-pem-file-test
+(deftest write-cert-pem-file-test
 
   (testing "Write certificate in PEM format"
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
@@ -107,7 +115,7 @@
       (.delete (io/file out-cert-filename)))))
 
 
-(deftest ^:unit read-cert-der-file-test
+(deftest read-cert-der-file-test
 
   (testing "Read X.509 certificate from DER file is successful"
     (let [out-cert-file     (File/createTempFile "filename" ".crt")
@@ -123,7 +131,7 @@
       (.delete (io/file out-cert-filename)))))
 
 
-(deftest ^:unit read-cert-pem-file-test
+(deftest read-cert-pem-file-test
 
   (testing "Read X.509 certificate from PEM file is successful"
     (let [out-cert-file     (File/createTempFile "filename" ".pem")
@@ -139,7 +147,7 @@
       (.delete (io/file out-cert-filename)))))
 
 
-(deftest ^:unit generate-csr-test
+(deftest generate-csr-test
 
   (testing "Generate PKCS10 CSR is successful"
     (let [keypair (s/gen-keypair-256)
@@ -151,14 +159,208 @@
   (testing "Generate PKCS10 CSR with custom attributes is successful"
     (let [keypair    (s/gen-keypair-256)
           subject    "CN=webserver"
-          extensions [(Extension. Extension/subjectAlternativeName
-                        false
-                        (DEROctetString. (GeneralNames. (GeneralName. (X500Name. "cn=alt-web")))))
-                      (Extension. Extension/keyUsage true
-                        (DEROctetString.
-                          (KeyUsage. (bit-or KeyUsage/keyCertSign KeyUsage/cRLSign
-                                       KeyUsage/digitalSignature))))]
+          extensions (conj
+                       (sut/webserver-extensions ["*.rssys.org"])
+                       (Extension. Extension/subjectAlternativeName
+                         false
+                         (DEROctetString. (GeneralNames. (GeneralName. (X500Name. "cn=alt-web")))))
+                       (Extension. Extension/keyUsage true
+                         (DEROctetString.
+                           (KeyUsage. (bit-or KeyUsage/keyCertSign KeyUsage/cRLSign
+                                        KeyUsage/digitalSignature)))))
 
           result     (sut/generate-csr keypair subject extensions)]
       (is (instance? PKCS10CertificationRequest result))
       (match (.toString (.getSubject result)) subject))))
+
+
+(deftest extension-non-ca-test
+  (testing "Extension for non CA certificates build success"
+    (let [result (sut/extension-non-ca)]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/basicConstraints)
+      (match (.toString (.getExtnId result)) "2.5.29.19")
+      (match (.toString (.getExtnValue result)))
+      (match (-> result .getParsedValue .toString) "[]")    ;; for non CA there is no TRUE
+      (match (.isCritical result) true))))
+
+
+
+(deftest extension-ca-test
+  (testing "Extension for non certificates build success"
+    (let [result (sut/extension-ca)]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/basicConstraints)
+      (match (.toString (.getExtnId result)) "2.5.29.19")
+      (match (-> result .getParsedValue .toString) "[TRUE]") ;; for CA there is TRUE value
+      (match (.isCritical result) true))))
+
+
+(deftest extension-alternative-names-test
+  (testing "Extension for alternative names build success"
+    (let [alt-name1 "www.rssys.org"
+          alt-name2 "*.rssys.org"
+          result    (sut/extension-alternative-names [alt-name1 alt-name2])]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/subjectAlternativeName)
+      (let [s (String. (.getOctets (.getExtnValue result)))]
+        (is (string/includes? s alt-name1))
+        (is (string/includes? s alt-name2))))))
+
+
+
+(deftest extension-crl-test
+  (testing "Extension for CRL distribution points build success"
+    (let [crl-name1 "http://localhost/crl1.pem"
+          crl-name2 "http://localhost/crl2.pem"
+          result    (sut/extension-crl [crl-name1 crl-name2])]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/cRLDistributionPoints)
+      (let [asn1-stream   (ASN1InputStream. (ByteArrayInputStream. (.getEncoded (.getExtnValue result))))
+            der-object    (.readObject asn1-stream)
+            octets        (.getOctets (cast DEROctetString der-object))
+            crls          (CRLDistPoint/getInstance (.readObject (ASN1InputStream. (ByteArrayInputStream. octets))))
+            dist-points   (.getDistributionPoints crls)
+            dist-names    (map #(.getDistributionPoint %) dist-points)
+            general-names (map #(.getName %) dist-names)
+            gen-name-coll (map #(.getNames %) general-names)
+            crl-coll      (map #(.toString (first %)) gen-name-coll)
+            s             (String. (.getOctets (.getExtnValue result)))]
+        (is (some #(string/includes? % crl-name1) crl-coll))
+        (is (some #(string/includes? % crl-name2) crl-coll))
+
+        ;; and shorter variant without parsing
+        (is (string/includes? s crl-name1))
+        (is (string/includes? s crl-name2))))))
+
+
+(deftest extension-ocsp-access-info-test
+  (testing "Extension for OCSP authority access information build success"
+    (let [ocsp-uri1 "http://localhost/ocsp1"
+          ocsp-uri2 "http://localhost/ocsp2"
+          result    (sut/extension-ocsp-access-info [ocsp-uri1 ocsp-uri2])]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/authorityInfoAccess)
+      (let [s (String. (.getOctets (.getExtnValue result)))]
+        (is (string/includes? s ocsp-uri1))
+        (is (string/includes? s ocsp-uri2))))))
+
+
+(deftest extension-key-usage-test
+  (testing "KeyUsage Extension build success"
+    (let [result (sut/extension-key-usage sut/typical-user-key-usage)]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/keyUsage))))
+
+
+(deftest extension-extended-key-usage-test
+  (testing "ExtendedKeyUsage Extension build success"
+    (let [result (sut/extension-extended-key-usage sut/typical-user-extended-key-usage)]
+      (is (instance? Extension result))
+      (match (.getExtnId result) Extension/extendedKeyUsage))))
+
+
+(deftest e-coll->extensions-test
+  (testing "Extensions object build success"
+    (let [result (sut/e-coll->extensions
+                   [(sut/extension-non-ca)
+                    (sut/extension-extended-key-usage sut/typical-user-extended-key-usage)
+                    (sut/extension-key-usage sut/typical-user-key-usage)])]
+      (is (instance? Extensions result)))))
+
+
+(deftest ca-extensions-test
+  (let [result (sut/ca-extensions)]
+    (is (every? #(instance? Extension %) result) "Every item is Extension")))
+
+
+
+(deftest webserver-extensions-test
+  (let [result (sut/webserver-extensions ["*.rssys.org"])]
+    (is (every? #(instance? Extension %) result) "Every item is Extension")))
+
+
+(deftest user-extensions-test
+  (let [result (sut/user-extensions)]
+    (is (every? #(instance? Extension %) result) "Every item is Extension")))
+
+
+(deftest csr->pem-string-test
+  (let [keypair (s/gen-keypair-256)
+        subject "CN=webserver"
+        csr     (sut/generate-csr keypair subject (sut/webserver-extensions ["www.rssys.org"]))
+        result  (sut/csr->pem-string csr)]
+    (is (string? result))
+    (is (string/includes? result "BEGIN CERTIFICATE REQUEST"))
+    (is (string/includes? result "END CERTIFICATE REQUEST"))))
+
+
+(deftest pem-string->csr-test
+  (let [csr-pem (slurp "test/data/user.csr")
+        result  (sut/pem-string->csr csr-pem)]
+    (is (instance? PKCS10CertificationRequest result))))
+
+
+(deftest get-cert-extensions-test
+  (let [cert   (sut/read-cert-der-file "test/data/user.crt")
+        result (sut/get-cert-extensions cert)]
+    (is (every? #(instance? Extension %) result) "Every item is Extension")))
+
+
+(deftest get-cert-crl-test
+  (let [cert   (sut/read-cert-der-file "test/data/user.crt")
+        result (sut/get-cert-crl cert)]
+    (is (every? #(instance? DistributionPoint %) result) "Every item is DistributionPoint")))
+
+
+(deftest get-cert-authority-access-info-test
+  (let [cert   (sut/read-cert-der-file "test/data/user.crt")
+        result (sut/get-cert-authority-access-info cert)]
+    (is (every? #(instance? AccessDescription %) result) "Every item is AccessDescription")))
+
+
+(deftest generate-certificate-test
+  (let [root-ca-keypair          (s/gen-keypair-256)
+        root-ca-subject          "CN=Red Stars Systems Root CA,OU=www.rssys.org,O=Red Stars Systems,C=RU"
+        root-ca-cert             (sut/generate-root-certificate root-ca-keypair root-ca-subject)
+        webserver-keypair        (s/gen-keypair-256)
+        webserver-subject        "CN=www.rssys.org"
+        webserver-csr            (sut/generate-csr webserver-keypair webserver-subject
+                                   (sut/webserver-extensions ["www.rssys.org"]))
+        webserver-not-after-date (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 2)))
+        webserver-cert1          (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr)
+        webserver-cert2          (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
+                                   {:not-after-date   webserver-not-after-date
+                                    :merge-extensions (sut/e-coll->extensions
+                                                        [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                                         (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
+        webserver-cert3          (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
+                                   {:not-after-date      webserver-not-after-date
+                                    :override-extensions (sut/e-coll->extensions
+                                                           (sut/webserver-extensions ["www.rssys.org"]))
+                                    :merge-extensions    (sut/e-coll->extensions
+                                                           [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                                            (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
+        user-keypair             (s/gen-keypair-256)
+        user-subject             "CN=Tony Stark,OU=Investigations,O=Red Stars Systems,C=RU"
+        user-not-after-date      (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 2)))
+        user-csr                 (sut/generate-csr user-keypair user-subject (sut/user-extensions))
+        user-cert1               (sut/generate-certificate root-ca-cert root-ca-keypair user-csr)
+        user-cert2               (sut/generate-certificate root-ca-cert root-ca-keypair user-csr
+                                   {:not-after-date   user-not-after-date
+                                    :merge-extensions (sut/e-coll->extensions
+                                                        [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                                         (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
+        user-cert3               (sut/generate-certificate root-ca-cert root-ca-keypair user-csr
+                                   {:not-after-date      user-not-after-date
+                                    :override-extensions (sut/e-coll->extensions
+                                                           (conj
+                                                             (sut/user-extensions)
+                                                             (sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                                             (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])))})]
+    (is (instance? X509CertificateObject webserver-cert1))
+    (is (instance? X509CertificateObject webserver-cert2))
+    (is (instance? X509CertificateObject webserver-cert3))
+    (is (instance? X509CertificateObject user-cert1))
+    (is (instance? X509CertificateObject user-cert2))
+    (is (instance? X509CertificateObject user-cert3))))
