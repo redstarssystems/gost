@@ -75,7 +75,7 @@
   (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr
     {:not-after-date      webserver-not-after-date
      :crl-uris            ["https://ca.rssys.org/crl.pem"]
-     :required-extensions (cert/e-coll->extensions
+     :override-extensions (cert/e-coll->extensions
                             (cert/webserver-extensions ["www.rssys.org"]))}))
 
 
@@ -121,21 +121,23 @@
 ;; docker run --rm -v /Users/mike/projects/gost/target/user.csr:/user.csr -i -t rnix/openssl-gost openssl req -in user.csr -text
 
 
-;; Generate user certificate valid for 2 years with extensions from CSR
+;; Generate user certificate valid for 2 years with extensions from CSR and add merge-extensions
 (def user-cert
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
-    {:not-after-date user-not-after-date
-     :crl-uris       ["https://ca.rssys.org/crl.pem"]}))
+    {:not-after-date   user-not-after-date
+     :merge-extensions (cert/e-coll->extensions
+                         [(cert/extension-crl ["https://ca.rssys.org/crl.pem"])
+                          (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate user certificate valid for 2 years with explicit extensions (not from CSR)
+;; Generate user certificate valid for 2 years with explicit extensions from :override-extensions (not from CSR)
 (def user-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
     {:not-after-date      user-not-after-date
-     :crl-uris            ["https://ca.rssys.org/crl.pem"]
-     :required-extensions (cert/e-coll->extensions
+     :override-extensions (cert/e-coll->extensions
                             (conj
                               (cert/user-extensions)
+                              (cert/extension-crl ["https://ca.rssys.org/crl.pem"])
                               (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])))}))
 
 
@@ -159,11 +161,11 @@
 
 ;; Read X.509 root CA certificate from a binary DER file.
 (def restored-der-root-cert-256 (cert/read-cert-der-file "target/root-ca-256.crt"))
-(= restored-der-root-cert-256 root-ca-cert)                ;; => true
+(= restored-der-root-cert-256 root-ca-cert)                 ;; => true
 
 ;; Read X.509 root CA certificate from a text PEM file.
 (def restored-pem-root-cert-256 (cert/read-cert-pem-file "target/root-ca-256.pem"))
-(= restored-pem-root-cert-256 root-ca-cert)                ;; => true
+(= restored-pem-root-cert-256 root-ca-cert)                 ;; => true
 
 
 ;; Get collection of ^Extension objects from certificate

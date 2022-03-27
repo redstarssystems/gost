@@ -155,8 +155,8 @@
                            X509ObjectIdentifiers/ocspAccessMethod
                            (GeneralName. GeneralName/uniformResourceIdentifier ^String %))
                      ocsp-uris)
-        aia (AuthorityInformationAccess. ^"[Lorg.bouncycastle.asn1.x509.AccessDescription;"
-              (into-array AccessDescription aai-points))]
+        aia        (AuthorityInformationAccess. ^"[Lorg.bouncycastle.asn1.x509.AccessDescription;"
+                     (into-array AccessDescription aai-points))]
     (Extension. Extension/authorityInfoAccess false (.getEncoded aia))))
 
 
@@ -368,48 +368,57 @@
   * `not-after-date` (optional) - ^Date object, by default current date and time + 2 years.
   * `serial-number` (optional) - ^BigInteger object (max 20 bytes),
      by default - current milliseconds since 1970 + random integer,
-  * `crl-uris` (optional) - collection of ^Strings with CRL URIs (e.g. [\"https://ca.rssys.org/crl.pem\"])
-  * `required-extensions` (optional) - collection of ^Extension objects which should be explicitly set into certificate.
-    If not set, then extensions will be taken from CSR and set into certificate."
+  * `override-extensions` (optional) - collection of ^Extension objects which should be explicitly set into certificate.
+  CSR extensions will be ignored. If not set, then extensions will be taken from CSR and set into certificate.
+  * `merge-extensions` (optional) - collection of ^Extension objects which should be added to CSR/override-extensions."
   ^X509CertificateObject
   [^X509CertificateObject ca-certificate ^KeyPair ca-keypair ^PKCS10CertificationRequest csr &
-   {:keys [^Date not-before-date ^Date not-after-date ^BigInteger serial-number crl-uris
-           ^Extensions required-extensions]}]
-  (let [key-length       (s/-key-length (s/get-private ca-keypair))
-        issuer           ^String (.getName (.getSubjectX500Principal ca-certificate))
-        subject          (.getSubject csr)
-        extensions       ^Extensions (or required-extensions (.getRequestedExtensions csr))
-        algo-name        (condp = key-length
-                           256 "GOST3411-2012-256withECGOST3410-2012-256"
-                           512 "GOST3411-2012-512withECGOST3410-2012-512")
-        calendar         (Calendar/getInstance)
-        _                (.set calendar Calendar/MILLISECOND 0) ;; obfuscate millis
-        not-before-date' ^Date (or not-before-date (.getTime calendar))
-        not-after-date'  ^Date (or not-after-date (do (.add calendar Calendar/YEAR 2) (.getTime calendar)))
+   {:keys [^Date not-before-date ^Date not-after-date ^BigInteger serial-number
+           ^Extensions override-extensions ^Extensions merge-extensions]}]
+  (let [key-length          (s/-key-length (s/get-private ca-keypair))
+        issuer              ^String (.getName (.getSubjectX500Principal ca-certificate))
+        subject             (.getSubject csr)
+        required-extensions ^Extensions (or override-extensions (.getRequestedExtensions csr))
+        merge-extensions    ^Extensions (or merge-extensions
+                                          (Extensions. ^"[Lorg.bouncycastle.asn1.x509.Extension;" ;; empty Extensions
+                                            (into-array Extension [])))
+        algo-name           (condp = key-length
+                              256 "GOST3411-2012-256withECGOST3410-2012-256"
+                              512 "GOST3411-2012-512withECGOST3410-2012-512")
+        calendar            (Calendar/getInstance)
+        _                   (.set calendar Calendar/MILLISECOND 0) ;; obfuscate millis
+        not-before-date'    ^Date (or not-before-date (.getTime calendar))
+        not-after-date'     ^Date (or not-after-date (do (.add calendar Calendar/YEAR 2) (.getTime calendar)))
 
-        serial-number'   ^BigInteger (or serial-number (BigInteger. (str (System/currentTimeMillis) (rand-int 10000000))))
-        cert-builder     (JcaX509v3CertificateBuilder. (X500Name. issuer) serial-number' not-before-date'
-                           not-after-date' subject (s/get-public ca-keypair))
+        serial-number'      ^BigInteger (or serial-number (BigInteger. (str (System/currentTimeMillis) (rand-int 10000000))))
+        cert-builder        (JcaX509v3CertificateBuilder. (X500Name. issuer) serial-number' not-before-date'
+                              not-after-date' subject (s/get-public ca-keypair))
 
-        cert-ext-utils   (JcaX509ExtensionUtils.)
+        cert-ext-utils      (JcaX509ExtensionUtils.)
 
-        cert-builder'    (doto cert-builder
-                           (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier cert-ext-utils
-                                                                                   ca-certificate))
-                           (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier cert-ext-utils
-                                                                                 (.getSubjectPublicKeyInfo csr))))
+        cert-builder'       (doto cert-builder
+                              (.addExtension Extension/authorityKeyIdentifier false (.createAuthorityKeyIdentifier cert-ext-utils
+                                                                                      ca-certificate))
+                              (.addExtension Extension/subjectKeyIdentifier false (.createSubjectKeyIdentifier cert-ext-utils
+                                                                                    (.getSubjectPublicKeyInfo csr))))
 
 
-        content-signer   (-> (JcaContentSignerBuilder. algo-name) (.setProvider "BC") (.build (s/get-private ca-keypair)))
-        cert-builder''   (if crl-uris
-                           (.addExtension cert-builder' (extension-crl crl-uris))
-                           cert-builder')
-        oids             (enumeration-seq (.oids extensions))
-        cert-builder'''  (if (seq oids)
-                           (reduce (fn [acc i] (.addExtension acc (.getExtension extensions i))) cert-builder'' oids)
-                           cert-builder'')
+        content-signer      (-> (JcaContentSignerBuilder. algo-name) (.setProvider "BC") (.build (s/get-private ca-keypair)))
 
-        cert-holder      (.build cert-builder''' content-signer)]
+
+        required-oids       (enumeration-seq (.oids required-extensions))
+
+        cert-builder''      (if (seq required-oids)
+                              (reduce (fn [acc i] (.addExtension acc (.getExtension required-extensions i))) cert-builder' required-oids)
+                              cert-builder')
+
+        merge-oids          (enumeration-seq (.oids merge-extensions))
+
+        cert-builder'''     (if (seq merge-oids)
+                              (reduce (fn [acc i] (.addExtension acc (.getExtension merge-extensions i))) cert-builder'' merge-oids)
+                              cert-builder'')
+
+        cert-holder         (.build cert-builder''' content-signer)]
     (-> (JcaX509CertificateConverter.)
       (.setProvider "BC")
       (.getCertificate cert-holder))))
