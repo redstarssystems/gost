@@ -67,16 +67,21 @@
 (def webserver-cert
   (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr
     {:not-after-date webserver-not-after-date
-     :crl-uris       ["https://ca.rssys.org/crl.pem"]}))
+     :merge-extensions (cert/e-coll->extensions
+                         [(cert/extension-crl ["https://ca.rssys.org/crl.pem"])
+                          (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate web server certificate valid for 2 years with explicit extensions (not from CSR)
+;; Generate web server certificate valid for 2 years with explicit extensions from `:override-extensions` (not from CSR)
+;; and add some extra extensions from `:merge-extensions`
 (def webserver-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr
     {:not-after-date      webserver-not-after-date
-     :crl-uris            ["https://ca.rssys.org/crl.pem"]
      :override-extensions (cert/e-coll->extensions
-                            (cert/webserver-extensions ["www.rssys.org"]))}))
+                            (cert/webserver-extensions ["www.rssys.org"]))
+     :merge-extensions (cert/e-coll->extensions
+                         [(cert/extension-crl ["https://ca.rssys.org/crl.pem"])
+                          (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
 ;; Write X.509 webserver certificate to a file in a binary form using DER format.
