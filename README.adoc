@@ -698,7 +698,12 @@ This is high-level functions.
 (def webserver-not-after-date (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 2))))
 
 
+;; Generate web server certificate valid for 2 years (default) with extensions from CSR
+(def webserver-cert (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr))
+
+
 ;; Generate web server certificate valid for 2 years with extensions from CSR
+;; and add some extra extensions from `:merge-extensions`
 (def webserver-cert
   (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr
     {:not-after-date webserver-not-after-date
