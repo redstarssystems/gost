@@ -121,7 +121,11 @@
 ;; docker run --rm -v /Users/mike/projects/gost/target/user.csr:/user.csr -i -t rnix/openssl-gost openssl req -in user.csr -text
 
 
-;; Generate user certificate valid for 2 years with extensions from CSR and add merge-extensions
+;; Generate user certificate valid for 2 years (default) with extensions from CSR
+(def user-cert (cert/generate-certificate root-ca-cert root-ca-keypair user-csr))
+
+
+;; Generate user certificate with some params and extensions from CSR and merge-extensions.
 (def user-cert
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
     {:not-after-date   user-not-after-date
@@ -130,7 +134,7 @@
                           (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate user certificate valid for 2 years with explicit extensions from :override-extensions (not from CSR)
+;; Generate user certificate valid for 2 years with explicitly set extensions from :override-extensions (not from CSR)
 (def user-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
     {:not-after-date      user-not-after-date
