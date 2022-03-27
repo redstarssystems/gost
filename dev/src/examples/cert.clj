@@ -77,8 +77,8 @@
                           (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate web server certificate valid for 2 years with explicit extensions from `:override-extensions` (not from CSR)
-;; and add some extra extensions from `:merge-extensions`
+;; Generate web server certificate valid for 2 years with explicit extensions from `:override-extensions`
+;; (not from CSR) and add some extra extensions from `:merge-extensions`
 (def webserver-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair webserver-csr
     {:not-after-date      webserver-not-after-date
@@ -144,7 +144,8 @@
                           (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate user certificate valid for 2 years with explicitly set extensions from :override-extensions (not from CSR)
+;; Generate user certificate valid for 2 years with explicitly set extensions from
+;; :override-extensions (not from CSR)
 (def user-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
     {:not-after-date      user-not-after-date
