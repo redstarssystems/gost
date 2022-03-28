@@ -189,6 +189,16 @@
   (Extensions. ^"[Lorg.bouncycastle.asn1.x509.Extension;" (into-array Extension e-coll)))
 
 
+(defn extensions->e-coll
+  "Convert ^Extensions object to collection of ^Extension objects."
+  ^"[Lorg.bouncycastle.asn1.x509.Extension;"
+  [^Extensions ext-object]
+  (reduce
+    (fn [acc i] (conj acc (.getExtension ext-object i)))
+    []
+    (enumeration-seq (.oids ext-object))))
+
+
 (defn ca-extensions
   "Returns collection of ^Extension objects for typical CA certificate."
   ^"[Lorg.bouncycastle.asn1.x509.Extension;"

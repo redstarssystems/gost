@@ -1,8 +1,9 @@
 (ns org.rssys.gost.cert-test
   (:require
     [clojure.java.io :as io]
+    [clojure.set]
     [clojure.string :as string]
-    [clojure.test :as test :refer [deftest is testing]]
+    [clojure.test :refer [deftest is testing]]
     [matcho.core :refer [match]]
     [org.rssys.gost.cert :as sut]
     [org.rssys.gost.sign :as s])
@@ -329,8 +330,10 @@
                                    (sut/webserver-extensions ["www.rssys.org"]))
         webserver-not-after-date (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 2)))
         webserver-cert1          (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr)
+        custom-serial            (BigInteger. (str 123456789))
         webserver-cert2          (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
                                    {:not-after-date   webserver-not-after-date
+                                    :serial-number    custom-serial
                                     :merge-extensions (sut/e-coll->extensions
                                                         [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
                                                          (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
@@ -343,11 +346,20 @@
                                                             (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
         user-keypair             (s/gen-keypair-256)
         user-subject             "CN=Tony Stark,OU=Investigations,O=Red Stars Systems,C=RU"
-        user-not-after-date      (.getTime (doto (Calendar/getInstance) (.add Calendar/YEAR 2)))
+
+        calendar1                (Calendar/getInstance)
+        _                        (.set calendar1 Calendar/MILLISECOND 0) ;; obfuscate millis
+        user-not-before-date     (.getTime (doto calendar1 (.add Calendar/DATE -1)))
+
+        calendar2                (Calendar/getInstance)
+        _                        (.set calendar2 Calendar/MILLISECOND 0) ;; obfuscate millis
+        user-not-after-date      (.getTime (doto calendar2 (.add Calendar/YEAR 2)))
+
         user-csr                 (sut/generate-csr user-keypair user-subject (sut/user-extensions))
         user-cert1               (sut/generate-certificate root-ca-cert root-ca-keypair user-csr)
         user-cert2               (sut/generate-certificate root-ca-cert root-ca-keypair user-csr
-                                   {:not-after-date   user-not-after-date
+                                   {:not-before-date  user-not-before-date
+                                    :not-after-date   user-not-after-date
                                     :merge-extensions (sut/e-coll->extensions
                                                         [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
                                                          (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])})
@@ -363,4 +375,109 @@
     (is (instance? X509CertificateObject webserver-cert3))
     (is (instance? X509CertificateObject user-cert1))
     (is (instance? X509CertificateObject user-cert2))
-    (is (instance? X509CertificateObject user-cert3))))
+    (is (instance? X509CertificateObject user-cert3))
+
+    (testing "CSR extensions are present in certificate"
+
+      (testing "Web server CSR"
+        (let [csr-extensions-object (.getRequestedExtensions webserver-csr)
+              csr-ext-coll          (sut/extensions->e-coll csr-extensions-object)
+              cert-ext              (sut/get-cert-extensions webserver-cert1)
+              ext-values-set-fn     (fn [e-coll] (into #{} (map #(.toString (.getExtnValue %)) e-coll)))]
+          (is (clojure.set/subset?
+                (ext-values-set-fn csr-ext-coll)
+                (ext-values-set-fn cert-ext)))))
+
+      (testing "User CSR"
+        (let [csr-extensions-object (.getRequestedExtensions user-csr)
+              csr-ext-coll          (sut/extensions->e-coll csr-extensions-object)
+              cert-ext              (sut/get-cert-extensions user-cert1)
+              ext-values-set-fn     (fn [e-coll] (into #{} (map #(.toString (.getExtnValue %)) e-coll)))]
+          (is (clojure.set/subset?
+                (ext-values-set-fn csr-ext-coll)
+                (ext-values-set-fn cert-ext))))))
+
+    (testing "Override extensions replace CSR extensions"
+      (let [user-ext-coll         (sut/user-extensions)
+            ext-values-set-fn     (fn [e-coll] (into #{} (map #(.toString (.getExtnValue %)) e-coll)))
+            cert                  (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
+                                    {:not-after-date      webserver-not-after-date
+                                     :override-extensions (sut/e-coll->extensions
+                                                            user-ext-coll)})
+            csr-extensions-object (.getRequestedExtensions webserver-csr)
+            csr-ext-coll          (sut/extensions->e-coll csr-extensions-object)
+            cert-ext              (sut/get-cert-extensions cert)]
+
+        (is (not (clojure.set/subset?
+                   (ext-values-set-fn csr-ext-coll)
+                   (ext-values-set-fn cert-ext))) "CSR extensions not present in certificate")
+
+        (is (clojure.set/subset?
+              (ext-values-set-fn user-ext-coll)
+              (ext-values-set-fn cert-ext)) "Overridden extensions present in certificate")))
+
+    (testing "Merge + CSR extensions are present in certificate"
+      (let [merge-ext-coll        [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                   (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])]
+            ext-values-set-fn     (fn [e-coll] (into #{} (map #(.toString (.getExtnValue %)) e-coll)))
+            cert                  (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
+                                    {:not-after-date   webserver-not-after-date
+                                     :merge-extensions (sut/e-coll->extensions
+                                                         merge-ext-coll)})
+            csr-extensions-object (.getRequestedExtensions webserver-csr)
+            csr-ext-coll          (sut/extensions->e-coll csr-extensions-object)
+            cert-ext              (sut/get-cert-extensions cert)]
+
+        (is (clojure.set/subset?
+              (ext-values-set-fn csr-ext-coll)
+              (ext-values-set-fn cert-ext)) "CSR extensions present in certificate")
+
+        (is (clojure.set/subset?
+              (ext-values-set-fn merge-ext-coll)
+              (ext-values-set-fn cert-ext)) "Merge extensions present in certificate")))
+
+    (testing "Merge + overridden extensions are present in certificate"
+      (let [user-ext-coll         (sut/user-extensions)
+            merge-ext-coll        [(sut/extension-crl ["https://ca.rssys.org/crl.pem"])
+                                   (sut/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])]
+            ext-values-set-fn     (fn [e-coll] (into #{} (map #(.toString (.getExtnValue %)) e-coll)))
+            cert                  (sut/generate-certificate root-ca-cert root-ca-keypair webserver-csr
+                                    {:not-after-date      webserver-not-after-date
+                                     :override-extensions (sut/e-coll->extensions
+                                                            user-ext-coll)
+                                     :merge-extensions    (sut/e-coll->extensions
+                                                            merge-ext-coll)})
+            csr-extensions-object (.getRequestedExtensions webserver-csr)
+            csr-ext-coll          (sut/extensions->e-coll csr-extensions-object)
+            cert-ext              (sut/get-cert-extensions cert)]
+
+        (is (not (clojure.set/subset?
+                   (ext-values-set-fn csr-ext-coll)
+                   (ext-values-set-fn cert-ext))) "CSR extensions not present in certificate")
+
+        (is (clojure.set/subset?
+              (ext-values-set-fn user-ext-coll)
+              (ext-values-set-fn cert-ext)) "Overridden extensions present in certificate")
+
+        (is (clojure.set/subset?
+              (ext-values-set-fn merge-ext-coll)
+              (ext-values-set-fn cert-ext)) "Merge extensions present in certificate")))
+
+    (testing "Not before date and not after date are present in certificate"
+      (let [cert-not-before-date (.getNotBefore user-cert2)
+            cert-not-after-date  (.getNotAfter user-cert2)]
+        (is (= user-not-before-date cert-not-before-date))
+        (is (= user-not-after-date cert-not-after-date))))
+
+    (testing "Subject present in certificate"
+      (let [cert-subject (.toString (.getSubjectDN user-cert2))]
+        (is (= user-subject cert-subject))))
+
+    (testing "Serial number generated automatically"
+      (let [cert-serial (.getSerialNumber user-cert2)]
+        (is (> (count (str cert-serial)) 0))
+        (is (pos? cert-serial))))
+
+    (testing "Custom serial number is present in certificate"
+      (let [custom-cert-serial (.getSerialNumber webserver-cert2)]
+        (is (= custom-cert-serial custom-serial))))))
