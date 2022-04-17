@@ -263,7 +263,7 @@
 
           random-iv        (byte-array 16)
           _                (.nextBytes (SecureRandom.) random-iv)]
-      (is (thrown-with-msg? Error #"Public key should be 256 bit length"
+      (is (thrown-with-msg? Error #"Public key should be the same length as private key"
             (sut/generate-shared-secret-256 private-key wrong-public-key random-iv)))))
 
   (testing "Wrong length of private key is not allowed for generate-shared-secret-256"
@@ -275,7 +275,7 @@
 
           random-iv         (byte-array 16)
           _                 (.nextBytes (SecureRandom.) random-iv)]
-      (is (thrown-with-msg? Error #"Private key should be 256 bit length"
+      (is (thrown-with-msg? Error #"Public key should be the same length as private key"
             (sut/generate-shared-secret-256 wrong-private-key public-key2 random-iv))))))
 
 

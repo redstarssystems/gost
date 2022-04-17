@@ -11,7 +11,7 @@
 ;; Generate self-signed root CA certificate
 
 ;; Generate root CA keypair
-(def root-ca-keypair (s/gen-keypair-256))
+(def root-ca-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format.
@@ -23,24 +23,24 @@
 
 
 ;; Write X.509 root CA certificate to a file in a binary form using DER format.
-(cert/write-cert-der-file root-ca-cert "target/root-ca-256.crt")
+(cert/write-cert-der-file root-ca-cert "target/root-ca-512.crt")
 
 
 ;; You can read root CA certificate using `openssl` with GOST support from DER file.
-;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-256.crt:/root-ca-256.crt -i -t rnix/openssl-gost openssl x509 -in root-ca-256.crt -inform der -text
+;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-512.crt:/root-ca-512.crt -i -t rnix/openssl-gost openssl x509 -in root-ca-512.crt -inform der -text
 
 ;; Write X.509 root CA certificate to a file in a text form using PEM format.
-(cert/write-cert-pem-file root-ca-cert "target/root-ca-256.pem")
+(cert/write-cert-pem-file root-ca-cert "target/root-ca-512.pem")
 
 
 ;; You can read root CA certificate using `openssl` with GOST support from PEM file
-;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-256.pem:/root-ca-256.pem -i -t rnix/openssl-gost openssl x509 -in root-ca-256.pem -text
+;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-512.pem:/root-ca-512.pem -i -t rnix/openssl-gost openssl x509 -in root-ca-512.pem -text
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate web server certificate
 
 ;; Generate web server keypair
-(def webserver-keypair (s/gen-keypair-256))
+(def webserver-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format.
@@ -107,8 +107,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate end user certificate
 
-;; Generate user keypair 256-bit length
-(def user-keypair (s/gen-keypair-256))
+;; Generate user keypair 512-bit length
+(def user-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format
@@ -175,12 +175,12 @@
 ;; Other functions
 
 ;; Read X.509 root CA certificate from a binary DER file.
-(def restored-der-root-cert-256 (cert/read-cert-der-file "target/root-ca-256.crt"))
-(= restored-der-root-cert-256 root-ca-cert)                 ;; => true
+(def restored-der-root-cert-512 (cert/read-cert-der-file "target/root-ca-512.crt"))
+(= restored-der-root-cert-512 root-ca-cert)                 ;; => true
 
 ;; Read X.509 root CA certificate from a text PEM file.
-(def restored-pem-root-cert-256 (cert/read-cert-pem-file "target/root-ca-256.pem"))
-(= restored-pem-root-cert-256 root-ca-cert)                 ;; => true
+(def restored-pem-root-cert-512 (cert/read-cert-pem-file "target/root-ca-512.pem"))
+(= restored-pem-root-cert-512 root-ca-cert)                 ;; => true
 
 
 ;; Get collection of ^Extension objects from certificate

@@ -21,7 +21,7 @@ The library provides:
 - encryption, mac using _GOST 28147-89_, _GOST 3412-2015_;
 - digest, hmac using _GOST3411-94/2012_ 256 and 512 bits;
 - signature using _GOST3410-2012_ 256 and 512 bit key length;
-- key generation: secret keys, public/private keys, password based keys;
+- GOST key generation: secret keys, public/private keys, password based keys;
 - compression + encryption + mac / decryption + check mac + decompression;
 - encrypting with GOST EC public keys / decrypting with EC private keys;
 - save/load GOST keys (secret, private, public) to PEM format;
@@ -264,31 +264,28 @@ This is high-level functions.
 
 (def message "This is a message.")
 
-;; Generate public and private keypair 256 bit length
-(def kp-256 (s/gen-keypair-256))
-
-(def public-key-256 (.getPublic kp-256))
-(def private-key-256 (.getPrivate kp-256))
-
-;; Generate signature for byte array. 
-;; Digest GOST3411-2012 256-bit length for message will be calculated automatically.
-(def signature-256 (s/sign-256 private-key-256 (.getBytes message)))
-
-;; Check signature length
-(alength signature-256)                                     ;; => 64
-
-;; Check signature using public key
-(s/verify-256 public-key-256 (.getBytes message) signature-256) ;; => true
-
 ;; Generate public and private keypair 512 bit length
 (def kp-512 (s/gen-keypair-512))
 
-(def public-key-512 (.getPublic kp-512))
-(def private-key-512 (.getPrivate kp-512))
+(def public-key-512 (s/get-public kp-512))
+(def private-key-512 (s/get-private kp-512))
 
-;; Generate signature for a file. 
+
+;; Generate signature for byte array.
+;; Digest GOST3411-2012 512-bit length for message will be calculated automatically.
+(def signature-512 (s/sign-512 private-key-512 (.getBytes message)))
+
+
+;; Check signature length
+(alength signature-512)                                     ;; => 128
+
+;; Check signature using public key
+(s/verify-512 public-key-512 (.getBytes message) signature-512) ;; => true
+
+;; Generate signature for a file.
 ;; Digest GOST3411-2012 512 bit length for file content will be calculated automatically.
 (def signature-512 (s/sign-512 private-key-512 "test/data/big.txt"))
+
 
 ;; Check signature length
 (alength signature-512)                                     ;; => 128
@@ -305,18 +302,19 @@ This is high-level functions.
 (require '[org.rssys.gost.sign :as s])
 
 ;; Generate shared secret key 256-bit length using Elliptic-curve Diffie–Hellman (ECDH) algorithm.
-
 ;; Generate Alice keypair
-(def alice-kp (s/gen-keypair-256))
+(def alice-kp (s/gen-keypair-512))
 
 (def alice-private-key (s/get-private alice-kp))
 (def alice-public-key (s/get-public alice-kp))
 
+
 ;; Generate Bob keypair
-(def bob-kp (s/gen-keypair-256))
+(def bob-kp (s/gen-keypair-512))
 
 (def bob-private-key (s/get-private bob-kp))
 (def bob-public-key (s/get-public bob-kp))
+
 
 ;; Generate random bytes which should be known for Alice and Bob
 ;; `random-iv` is not secret and may be transferred via open channels.
@@ -324,14 +322,19 @@ This is high-level functions.
 ;; and 32+ bytes for generate-shared-secret-512.
 (def random-iv (s/random-bytes 16))
 
+
 ;; Generate shared secret 256-bits length for Alice
 (def alice-shared-secret (s/generate-shared-secret-256 alice-private-key bob-public-key random-iv))
+
 
 ;; Generate shared secret 256-bits length for Bob
 (def bob-shared-secret (s/generate-shared-secret-256 bob-private-key alice-public-key random-iv))
 
+
 ;; Check that keys are equal
 (= (into [] alice-shared-secret) (into [] bob-shared-secret)) ;; => true
+
+(alength alice-shared-secret)                               ;; => 32
 
 ----
 
@@ -343,15 +346,16 @@ This is high-level functions.
 (require '[org.rssys.gost.sign :as s])
 (require '[org.rssys.gost.ecies :as ecies])
 
-;; Generate Alice's keypair 256-bit length
-(def alice-kp (s/gen-keypair-256))
+
+;; Generate Alice keypair 512-bit length
+(def alice-kp (s/gen-keypair-512))
 
 (def alice-private-key (s/get-private alice-kp))
 (def alice-public-key (s/get-public alice-kp))
 
 
-;; Generate Bob's keypair 256-bit length
-(def bob-kp (s/gen-keypair-256))
+;; Generate Bob keypair 512-bit length
+(def bob-kp (s/gen-keypair-512))
 
 (def bob-private-key (s/get-private bob-kp))
 (def bob-public-key (s/get-public bob-kp))
@@ -368,39 +372,12 @@ This is high-level functions.
 ;; Bob decrypts message with one-time secret key 256-bit length derived from
 ;; Bob's private key and Alice public key and random vector. Random vector is decrypted with ECIES and Bob's private key.
 (String. ^bytes (ecies/decrypt-bytes bob-private-key alice-public-key encrypted-data))
-;; => "This is message."
 
-
-;; Generate Alice's keypair 512-bit length
-(def alice-kp-512 (s/gen-keypair-512))
-
-(def alice-private-key-512 (s/get-private alice-kp-512))
-(def alice-public-key-512 (s/get-public alice-kp-512))
-
-
-;; Generate Bob's keypair 512-bit length
-(def bob-kp-512 (s/gen-keypair-512))
-
-(def bob-private-key-512 (s/get-private bob-kp-512))
-(def bob-public-key-512 (s/get-public bob-kp-512))
-
-
-(def message2 "This is message2.")
-
-
-;; Alice encrypts message2 with one-time secret key 256-bit length derived from
-;; Bob's public key and Alice's private key and random vector. Random vector is encrypted with ECIES.
-(def encrypted-data2 (ecies/encrypt-bytes alice-private-key-512 bob-public-key-512 (.getBytes message2)))
-
-
-;; Bob decrypts message2 with one-time secret key 256-bit length derived from
-;; Bob's private key and Alice's public key and random vector. Random vector is decrypted with ECIES.
-(String. ^bytes (ecies/decrypt-bytes bob-private-key-512 alice-public-key-512 encrypted-data2))
-;; => "This is message2."
 
 ;; Alice encrypts file with one-time secret key 256-bit length derived from
 ;; Bob's public key and Alice's private key and random vector. Random vector is encrypted with ECIES and Bob's public key.
 (ecies/encrypt-file alice-private-key bob-public-key "test/data/big.txt" "target/big.egz")
+
 
 ;; Bob decrypts file with one-time secret key 256-bit length derived from
 ;; Bob's private key and Alice's public key and random vector. Random vector is decrypted with ECIES and Bob's private key.
@@ -646,7 +623,7 @@ This is high-level functions.
 ;; Generate self-signed root CA certificate
 
 ;; Generate root CA keypair
-(def root-ca-keypair (s/gen-keypair-256))
+(def root-ca-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format.
@@ -658,24 +635,24 @@ This is high-level functions.
 
 
 ;; Write X.509 root CA certificate to a file in a binary form using DER format.
-(cert/write-cert-der-file root-ca-cert "target/root-ca-256.crt")
+(cert/write-cert-der-file root-ca-cert "target/root-ca-512.crt")
 
 
 ;; You can read root CA certificate using `openssl` with GOST support from DER file.
-;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-256.crt:/root-ca-256.crt -i -t rnix/openssl-gost openssl x509 -in root-ca-256.crt -inform der -text
+;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-512.crt:/root-ca-512.crt -i -t rnix/openssl-gost openssl x509 -in root-ca-512.crt -inform der -text
 
 ;; Write X.509 root CA certificate to a file in a text form using PEM format.
-(cert/write-cert-pem-file root-ca-cert "target/root-ca-256.pem")
+(cert/write-cert-pem-file root-ca-cert "target/root-ca-512.pem")
 
 
 ;; You can read root CA certificate using `openssl` with GOST support from PEM file
-;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-256.pem:/root-ca-256.pem -i -t rnix/openssl-gost openssl x509 -in root-ca-256.pem -text
+;; docker run --rm -v /Users/mike/projects/gost/target/root-ca-512.pem:/root-ca-512.pem -i -t rnix/openssl-gost openssl x509 -in root-ca-512.pem -text
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate web server certificate
 
 ;; Generate web server keypair
-(def webserver-keypair (s/gen-keypair-256))
+(def webserver-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format.
@@ -739,11 +716,12 @@ This is high-level functions.
 ;; You can read webserver certificate using `openssl` with GOST support from PEM file
 ;; docker run --rm -v /Users/mike/projects/gost/target/webserver.pem:/webserver.pem -i -t rnix/openssl-gost openssl x509 -in webserver.pem -text
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate end user certificate
 
-;; Generate user keypair 256-bit length
-(def user-keypair (s/gen-keypair-256))
+;; Generate user keypair 512-bit length
+(def user-keypair (s/gen-keypair-512))
 
 
 ;; Subject is a String in X.500 distinguished name format
@@ -779,7 +757,7 @@ This is high-level functions.
                           (cert/extension-ocsp-access-info ["https://ca.rssys.org/ocsp"])])}))
 
 
-;; Generate user certificate valid for 2 years with explicitly set extensions from 
+;; Generate user certificate valid for 2 years with explicitly set extensions from
 ;; :override-extensions (not from CSR)
 (def user-cert'
   (cert/generate-certificate root-ca-cert root-ca-keypair user-csr
@@ -810,12 +788,12 @@ This is high-level functions.
 ;; Other functions
 
 ;; Read X.509 root CA certificate from a binary DER file.
-(def restored-der-root-cert-256 (cert/read-cert-der-file "target/root-ca-256.crt"))
-(= restored-der-root-cert-256 root-ca-cert)                 ;; => true
+(def restored-der-root-cert-512 (cert/read-cert-der-file "target/root-ca-512.crt"))
+(= restored-der-root-cert-512 root-ca-cert)                 ;; => true
 
 ;; Read X.509 root CA certificate from a text PEM file.
-(def restored-pem-root-cert-256 (cert/read-cert-pem-file "target/root-ca-256.pem"))
-(= restored-pem-root-cert-256 root-ca-cert)                 ;; => true
+(def restored-pem-root-cert-512 (cert/read-cert-pem-file "target/root-ca-512.pem"))
+(= restored-pem-root-cert-512 root-ca-cert)                 ;; => true
 
 
 ;; Get collection of ^Extension objects from certificate
@@ -833,7 +811,6 @@ This is high-level functions.
 ;; Get first OCSP URL from collection
 (.toString (.getName ^org.bouncycastle.asn1.x509.GeneralName (.getAccessLocation (first ocsp-coll))))
 
-
 ----
 
 == PKCS12 keystore
@@ -848,12 +825,13 @@ This is high-level functions.
 (require '[org.rssys.gost.encrypt :as e])
 (require '[org.rssys.gost.p12store :as p12store])
 
-; Generate ECGOST3410-2012 256-bit length keypair
-(def kp-256 (s/gen-keypair-256))
+
+;; Generate ECGOST3410-2012 512-bit length keypair
+(def kp-512 (s/gen-keypair-512))
 
 
 ;; Generate self-signed root CA certificate
-(def cert-256 (cert/generate-root-certificate kp-256 "cn=rootca"))
+(def cert-512 (cert/generate-root-certificate kp-512 "cn=rootca"))
 
 
 ;; Create empty KeyStore in memory
@@ -861,7 +839,7 @@ This is high-level functions.
 
 
 ;; Set private key with certificate chain to a keystore
-(p12store/set-private-key ks (s/get-private kp-256) "privatekey" [cert-256])
+(p12store/set-private-key ks (s/get-private kp-512) "privatekey" [cert-512])
 
 
 ;; List aliases in a KeyStore
@@ -901,7 +879,7 @@ This is high-level functions.
 
 ;; Set private key with certificate chain to a keystore encrypted with password entry
 ;; using `PBEWithHmacSHA256AndAES_256` algorithm
-(p12store/set-private-key ks (s/get-private kp-256) "privatekey2" [cert-256] :password "Secret13")
+(p12store/set-private-key ks (s/get-private kp-512) "privatekey2" [cert-512] :password "Secret13")
 
 
 ;; Write KeyStore to a file
@@ -914,7 +892,7 @@ This is high-level functions.
 
 ;; List aliases in a KeyStore
 (p12store/list-aliases restored-ks)                         ;; =>
-;;["privatekey" "secretkey" "secretkey2" "privatekey2"]
+;;["privatekey" "secretkey2" "privatekey2"]
 
 ----
 

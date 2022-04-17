@@ -7,12 +7,12 @@
     [org.rssys.gost.sign :as s]))
 
 
-;; Generate ECGOST3410-2012 256-bit length keypair
-(def kp-256 (s/gen-keypair-256))
+;; Generate ECGOST3410-2012 512-bit length keypair
+(def kp-512 (s/gen-keypair-512))
 
 
 ;; Generate self-signed root CA certificate
-(def cert-256 (cert/generate-root-certificate kp-256 "cn=rootca"))
+(def cert-512 (cert/generate-root-certificate kp-512 "cn=rootca"))
 
 
 ;; Create empty KeyStore in memory
@@ -20,7 +20,7 @@
 
 
 ;; Set private key with certificate chain to a keystore
-(p12store/set-private-key ks (s/get-private kp-256) "privatekey" [cert-256])
+(p12store/set-private-key ks (s/get-private kp-512) "privatekey" [cert-512])
 
 
 ;; List aliases in a KeyStore
@@ -60,7 +60,7 @@
 
 ;; Set private key with certificate chain to a keystore encrypted with password entry
 ;; using `PBEWithHmacSHA256AndAES_256` algorithm
-(p12store/set-private-key ks (s/get-private kp-256) "privatekey2" [cert-256] :password "Secret13")
+(p12store/set-private-key ks (s/get-private kp-512) "privatekey2" [cert-512] :password "Secret13")
 
 
 ;; Write KeyStore to a file
@@ -73,19 +73,7 @@
 
 ;; List aliases in a KeyStore
 (p12store/list-aliases restored-ks)                         ;; =>
-;;["privatekey" "secretkey" "secretkey2" "privatekey2"]
+;;["privatekey" "secretkey2" "privatekey2"]
 
 
 
-
-;; download certificate in pem format
-;; then convert pem to der format
-;; then import der into keystore
-;; openssl x509 -outform der -in ~/Downloads/digicert-com.pem -out digicert.der
-;; keytool -import -alias digicert -keystore test/data/ks.p12 -file digicert.der
-
-;; list aliases using keytool
-;; keytool -v -list -storetype PKCS12 -keystore ks.p12 -storepass Secret13
-
-;; list aliases using openssl
-;; openssl pkcs12 -nokeys -info -in ks.p12 -passin pass:Secret13

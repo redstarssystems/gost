@@ -212,8 +212,7 @@
   Other party should know the same `random-iv` to generate the same shared secret key."
   ^bytes
   [^BCECGOST3410_2012PrivateKey my-private-key ^BCECGOST3410_2012PublicKey other-public-key ^bytes random-iv]
-  (assert (= 256 (-key-length other-public-key)) "Public key should be 256 bit length")
-  (assert (= 256 (-key-length my-private-key)) "Private key should be 256 bit length")
+  (assert (= (-key-length my-private-key) (-key-length other-public-key)) "Public key should be the same length as private key")
   (assert (.equals (-ec-curve other-public-key) (-ec-curve my-private-key))
     (format "Public key has incompatible EC Curve parameters with private key: %s " (-curve-name other-public-key)))
   (let [ka       (KeyAgreement/getInstance "ECDH" "BC")
