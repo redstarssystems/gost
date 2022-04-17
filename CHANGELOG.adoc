@@ -1,6 +1,6 @@
 == Changelog
 
-=== [0.4.0] - unpublished
+=== [0.4.0] - 2022-04-17
 
 - add _X.509_ certificates support:
 ** generate self-signed root CA function;
