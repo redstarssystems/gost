@@ -206,7 +206,7 @@
 (defn generate-shared-secret-256
   "Generate shared secret key 256-bit length using Elliptic-curve Diffie–Hellman (ECDH) algorithm.
   Returns secret key bytes array of 32 bytes length.
-  `my-private-key` and `other-public-key` should be 256-bit length and have the same EC Curve.
+  `my-private-key` and `other-public-key` should have the same EC Curve.
   `random-iv` is not secret and may be transferred via open channels. Recommended length is 16+ random bytes.
   The only requirement for `random-iv` be always random for any key agreement session.
   Other party should know the same `random-iv` to generate the same shared secret key."
