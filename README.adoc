@@ -11,6 +11,13 @@
 image:https://img.shields.io/github/license/redstarssystems/gost[license,link=LICENSE]
 image:https://img.shields.io/clojars/v/org.rssys/gost.svg[clojars,link=https://clojars.org/org.rssys/gost]
 
+== Info
+
+I made a new version of this library on pure Java due to serious security concerns in GOST implementation in Bouncycastle.
+
+See details https://gitflic.ru/project/red-stars-systems/crypto-gost[here]
+
+*This repo is now archived.*
 
 == Intro
 
@@ -446,7 +453,7 @@ This is high-level functions.
 
 ;; To restore private key from encrypted PEM (PKCS8) string use `encrypted-pem->private-key`
 (p/encrypted-pem->private-key (slurp "test/data/test-encrypted-private-key.pem") "123456") ;;=>
-;;#object[org.bouncycastle.jcajce.provider.asymmetric.ecgost12.BCECGOST3410_2012PrivateKey 0x3776cb5 "ECGOST3410-2012 
+;;#object[org.bouncycastle.jcajce.provider.asymmetric.ecgost12.BCECGOST3410_2012PrivateKey 0x3776cb5 "ECGOST3410-2012
 ;; Private Key [55:07:ef:03:d1:7f:ea:e7:53:ca:58:6d:0e:da:0a:6f:e2:93:4b:b4]
 ;;            X: df0679d81ec2156f062b507918c10fb9e680848be92ec69af6be9f32ffd8669e
 ;;            Y: 2234280a15135e723579ef96544742f6cc06f8d59cccd88fd4b377f818ce9f95
@@ -508,7 +515,7 @@ Download _openssl_ with _GOST_ from here: `docker run --rm -i -t rnix/openssl-go
 [source, bash]
 .openssl.sh
 ----
-openssl pkey -in test/data/test-private-key.pem -noout -text                                                                  
+openssl pkey -in test/data/test-private-key.pem -noout -text
 Private key: DC03D4325299B33F75DFE365E3018330B72FE4FE227A00509D92EDC43034D3106F98F6E8B9CA71D2620DE1DF329549860688713DF97D7FE3CA118C7BB74290CB
 Public key:
    X:583E506A840B067967A9C66AC5DE4E55F9C179E723E7D5FD9E5B3C474413416CA9EBB62202433A4DE92DE8B711619AC69F18ED35559563D2563F451C13128C2E
@@ -516,7 +523,7 @@ Public key:
 Parameter set: id-tc26-gost-3410-2012-512-paramSetA
 Digest Algorithm: GOST R 34-11-2012 (512 bit)
 
-openssl pkey -pubin -in test/data/test-public-key.pem -text                                                                   
+openssl pkey -pubin -in test/data/test-public-key.pem -text
 -----BEGIN PUBLIC KEY-----
 MIGqMCEGCCqFAwcBAQECMBUGCSqFAwcBAgECAQYIKoUDBwEBAgMDgYQABIGALowS
 ExxFP1bSY5VVNe0Yn8aaYRG36C3pTTpDAiK266lsQRNERzxbnv3V5yPnecH5VU7e
@@ -901,7 +908,7 @@ This is high-level functions.
 == Low-level functions
 
 IMPORTANT: Use these functions carefully. +
-*If you are not sure use high-level functions only!* 
+*If you are not sure use high-level functions only!*
 
 === IV & Mac length
 
@@ -1005,7 +1012,7 @@ The GOST28147-89 has several named `S-box` parameters:
 
 ==== GOST OID parameters
 
-The GOST28147-89 has several OID `S-box` parameters 
+The GOST28147-89 has several OID `S-box` parameters
 https://cpdn.cryptopro.ru/content/csp40/html/group___pro_c_s_p_ex_CP_PARAM_OIDS.html[OID params table]
 
 [source,clojure]
@@ -1057,7 +1064,7 @@ The GOST28147-89 may be initialized with 'S-boxes' as bytes array:
 
 
 ;; Init cipher for GOST3412-2015,  with AlgoParamsSpec, IV should be always random
-(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode 
+(def cipher-2015 (e/new-encryption-cipher secret-key-2015 :cfb-mode
                    (javax.crypto.spec.IvParameterSpec. (e/new-iv-16))))
 
 ;; Init cipher for GOST28147,  with AlgoParamsSpec, IV should be always random
@@ -1079,7 +1086,7 @@ The GOST28147-89 may be initialized with 'S-boxes' as bytes array:
 
 ;; Init decryption cipher for GOST28147
 ;; we should use the same IV and S-boxes which were used in encryption phase
-(def iv-8 (.getIV cipher-89)) 
+(def iv-8 (.getIV cipher-89))
 (def decryption-cipher-89 (e/new-decryption-cipher secret-key-89 :cfb-mode
                             (e/init-gost-named-params (e/algo-name secret-key-89) iv-8 "E-A")))
 
